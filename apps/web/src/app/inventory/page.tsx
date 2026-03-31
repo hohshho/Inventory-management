@@ -1,5 +1,5 @@
-import { InventoryScreen } from "@/components/screens/inventory-screen";
+import { StockCatalogView } from "@/components/screens/stock-catalog-view";
 
 export default function InventoryPage() {
-  return <InventoryScreen />;
+  return <StockCatalogView />;
 }

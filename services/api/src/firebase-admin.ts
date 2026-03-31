@@ -16,32 +16,91 @@ type ServiceAccountShape = {
   private_key: string;
 };
 
+type SelectedAdminConfig = {
+  appEnv: "development" | "production";
+  projectId?: string;
+  clientEmail?: string;
+  privateKey?: string;
+  serviceAccountPath?: string;
+};
+
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(currentDir, "../../..");
 
-function resolveServiceAccountPath() {
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
-    return path.resolve(repoRoot, process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
-  }
-
-  const defaultPath = path.resolve(repoRoot, "secret/inventory-management-key.json");
-  return fs.existsSync(defaultPath) ? defaultPath : null;
+function getSelectedAppEnv() {
+  return process.env.APP_ENV === "production" ? "production" : "development";
 }
 
-function createCredential() {
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+function getSelectedAdminConfig(): SelectedAdminConfig {
+  const appEnv = getSelectedAppEnv();
 
-  if (projectId && clientEmail && privateKey) {
+  const scopedConfig =
+    appEnv === "production"
+      ? {
+          projectId: process.env.FIREBASE_PROJECT_ID_PROD,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL_PROD,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY_PROD?.replace(/\\n/g, "\n"),
+          serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH_PROD,
+        }
+      : {
+          projectId: process.env.FIREBASE_PROJECT_ID_DEV,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL_DEV,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY_DEV?.replace(/\\n/g, "\n"),
+          serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH_DEV,
+        };
+
+  if (
+    scopedConfig.projectId ||
+    scopedConfig.clientEmail ||
+    scopedConfig.privateKey ||
+    scopedConfig.serviceAccountPath
+  ) {
+    return {
+      appEnv,
+      ...scopedConfig,
+    };
+  }
+
+  return {
+    appEnv,
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    serviceAccountPath: process.env.FIREBASE_SERVICE_ACCOUNT_PATH,
+  };
+}
+
+function resolveServiceAccountPath(config: SelectedAdminConfig) {
+  if (config.serviceAccountPath) {
+    return path.resolve(repoRoot, config.serviceAccountPath);
+  }
+
+  const candidates =
+    config.appEnv === "production"
+      ? ["secret/firebase.prod.json"]
+      : ["secret/firebase.dev.json", "secret/inventory-management-key.json"];
+
+  for (const candidate of candidates) {
+    const resolved = path.resolve(repoRoot, candidate);
+
+    if (fs.existsSync(resolved)) {
+      return resolved;
+    }
+  }
+
+  return null;
+}
+
+function createCredential(config: SelectedAdminConfig) {
+  if (config.projectId && config.clientEmail && config.privateKey) {
     return cert({
-      projectId,
-      clientEmail,
-      privateKey,
+      projectId: config.projectId,
+      clientEmail: config.clientEmail,
+      privateKey: config.privateKey,
     });
   }
 
-  const serviceAccountPath = resolveServiceAccountPath();
+  const serviceAccountPath = resolveServiceAccountPath(config);
 
   if (serviceAccountPath) {
     const file = fs.readFileSync(serviceAccountPath, "utf8");
@@ -57,11 +116,15 @@ function createCredential() {
   return applicationDefault();
 }
 
+const selectedConfig = getSelectedAdminConfig();
+
 const adminApp =
   getApps()[0] ??
   initializeApp({
-    credential: createCredential(),
+    credential: createCredential(selectedConfig),
+    projectId: selectedConfig.projectId,
   });
 
 export const adminAuth = getAuth(adminApp);
 export const adminDb = getFirestore(adminApp);
+export const firebaseAppEnv = selectedConfig.appEnv;

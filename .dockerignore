@@ -1,0 +1,16 @@
+.git
+.turbo
+node_modules
+apps/web/.next
+services/api/dist
+packages/shared/dist
+secret
+docs
+image.png
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.env
+.env.*
+apps/web/.env.local
+services/api/.env

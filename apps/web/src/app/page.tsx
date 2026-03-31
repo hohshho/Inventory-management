@@ -1,5 +1,5 @@
-import { DashboardScreen } from "@/components/screens/dashboard-screen";
+import { OperationsOverviewView } from "@/components/screens/operations-overview-view";
 
 export default function Home() {
-  return <DashboardScreen />;
+  return <OperationsOverviewView />;
 }

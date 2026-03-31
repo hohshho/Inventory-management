@@ -1,5 +1,5 @@
-import { HistoryScreen } from "@/components/screens/history-screen";
+import { ActivityLedgerView } from "@/components/screens/activity-ledger-view";
 
 export default function HistoryPage() {
-  return <HistoryScreen />;
+  return <ActivityLedgerView />;
 }

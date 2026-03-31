@@ -1,0 +1,150 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.3.5)
+
+2026-03-31T09:51:52.955+09:00  INFO 23188 --- [inventory-management-api-spring] [           main] m.a.InventoryManagementSpringApplication : Starting InventoryManagementSpringApplication v0.1.0 using Java 17.0.15 with PID 23188 (C:\github\Inventory-management\services\api-spring\target\api-spring-0.1.0.jar started by EGIS in C:\github\Inventory-management\services\api-spring)
+2026-03-31T09:51:52.958+09:00  INFO 23188 --- [inventory-management-api-spring] [           main] m.a.InventoryManagementSpringApplication : No active profile set, falling back to 1 default profile: "default"
+2026-03-31T09:51:54.243+09:00  INFO 23188 --- [inventory-management-api-spring] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 2002 (http)
+2026-03-31T09:51:54.259+09:00  INFO 23188 --- [inventory-management-api-spring] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-03-31T09:51:54.259+09:00  INFO 23188 --- [inventory-management-api-spring] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.31]
+2026-03-31T09:51:54.301+09:00  INFO 23188 --- [inventory-management-api-spring] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-03-31T09:51:54.307+09:00  INFO 23188 --- [inventory-management-api-spring] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1298 ms
+2026-03-31T09:51:54.440+09:00 ERROR 23188 --- [inventory-management-api-spring] [           main] o.s.b.web.embedded.tomcat.TomcatStarter  : Error starting Tomcat context. Exception: org.springframework.beans.factory.UnsatisfiedDependencyException. Message: Error creating bean with name 'firebaseAuthenticationFilter' defined in URL [jar:nested:/C:/github/Inventory-management/services/api-spring/target/api-spring-0.1.0.jar/!BOOT-INF/classes/!/com/inventory/management/api/security/FirebaseAuthenticationFilter.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'firebaseAuth' defined in class path resource [com/inventory/management/api/config/FirebaseAdminConfig.class]: Unsatisfied dependency expressed through method 'firebaseAuth' parameter 0: Error creating bean with name 'firebaseApp' defined in class path resource [com/inventory/management/api/config/FirebaseAdminConfig.class]: Failed to instantiate [com.google.firebase.FirebaseApp]: Factory method 'firebaseApp' threw exception with message: Your default credentials were not found. To set up Application Default Credentials for your environment, see https://cloud.google.com/docs/authentication/external/set-up-adc.
+2026-03-31T09:51:54.479+09:00  INFO 23188 --- [inventory-management-api-spring] [           main] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
+2026-03-31T09:51:54.490+09:00  WARN 23188 --- [inventory-management-api-spring] [           main] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.context.ApplicationContextException: Unable to start web server
+2026-03-31T09:51:54.500+09:00  INFO 23188 --- [inventory-management-api-spring] [           main] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-03-31T09:51:54.518+09:00 ERROR 23188 --- [inventory-management-api-spring] [           main] o.s.boot.SpringApplication               : Application run failed
+
+org.springframework.context.ApplicationContextException: Unable to start web server
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.onRefresh(ServletWebServerApplicationContext.java:165) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.context.support.AbstractApplicationContext.refresh(AbstractApplicationContext.java:619) ~[spring-context-6.1.14.jar!/:6.1.14]
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.refresh(ServletWebServerApplicationContext.java:146) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.SpringApplication.refresh(SpringApplication.java:754) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.SpringApplication.refreshContext(SpringApplication.java:456) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:335) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1363) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1352) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at com.inventory.management.api.InventoryManagementSpringApplication.main(InventoryManagementSpringApplication.java:17) ~[!/:0.1.0]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
+	at org.springframework.boot.loader.launch.Launcher.launch(Launcher.java:102) ~[api-spring-0.1.0.jar:0.1.0]
+	at org.springframework.boot.loader.launch.Launcher.launch(Launcher.java:64) ~[api-spring-0.1.0.jar:0.1.0]
+	at org.springframework.boot.loader.launch.JarLauncher.main(JarLauncher.java:40) ~[api-spring-0.1.0.jar:0.1.0]
+Caused by: org.springframework.boot.web.server.WebServerException: Unable to start embedded Tomcat
+	at org.springframework.boot.web.embedded.tomcat.TomcatWebServer.initialize(TomcatWebServer.java:147) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.web.embedded.tomcat.TomcatWebServer.<init>(TomcatWebServer.java:107) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory.getTomcatWebServer(TomcatServletWebServerFactory.java:516) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory.getWebServer(TomcatServletWebServerFactory.java:222) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.createWebServer(ServletWebServerApplicationContext.java:188) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.onRefresh(ServletWebServerApplicationContext.java:162) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	... 15 common frames omitted
+Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'firebaseAuthenticationFilter' defined in URL [jar:nested:/C:/github/Inventory-management/services/api-spring/target/api-spring-0.1.0.jar/!BOOT-INF/classes/!/com/inventory/management/api/security/FirebaseAuthenticationFilter.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'firebaseAuth' defined in class path resource [com/inventory/management/api/config/FirebaseAdminConfig.class]: Unsatisfied dependency expressed through method 'firebaseAuth' parameter 0: Error creating bean with name 'firebaseApp' defined in class path resource [com/inventory/management/api/config/FirebaseAdminConfig.class]: Failed to instantiate [com.google.firebase.FirebaseApp]: Factory method 'firebaseApp' threw exception with message: Your default credentials were not found. To set up Application Default Credentials for your environment, see https://cloud.google.com/docs/authentication/external/set-up-adc.
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:795) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.ConstructorResolver.autowireConstructor(ConstructorResolver.java:237) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.autowireConstructor(AbstractAutowireCapableBeanFactory.java:1375) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1212) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:562) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:522) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:337) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:335) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:205) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.boot.web.servlet.ServletContextInitializerBeans.getOrderedBeansOfType(ServletContextInitializerBeans.java:211) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.web.servlet.ServletContextInitializerBeans.addAsRegistrationBean(ServletContextInitializerBeans.java:174) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.web.servlet.ServletContextInitializerBeans.addAsRegistrationBean(ServletContextInitializerBeans.java:169) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.web.servlet.ServletContextInitializerBeans.addAdaptableBeans(ServletContextInitializerBeans.java:154) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.web.servlet.ServletContextInitializerBeans.<init>(ServletContextInitializerBeans.java:87) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.getServletContextInitializerBeans(ServletWebServerApplicationContext.java:266) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext.selfInitialize(ServletWebServerApplicationContext.java:240) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.springframework.boot.web.embedded.tomcat.TomcatStarter.onStartup(TomcatStarter.java:52) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	at org.apache.catalina.core.StandardContext.startInternal(StandardContext.java:4412) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.apache.catalina.util.LifecycleBase.start(LifecycleBase.java:164) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.apache.catalina.core.ContainerBase$StartChild.call(ContainerBase.java:1203) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.apache.catalina.core.ContainerBase$StartChild.call(ContainerBase.java:1193) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264) ~[na:na]
+	at org.apache.tomcat.util.threads.InlineExecutorService.execute(InlineExecutorService.java:75) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at java.base/java.util.concurrent.AbstractExecutorService.submit(AbstractExecutorService.java:145) ~[na:na]
+	at org.apache.catalina.core.ContainerBase.startInternal(ContainerBase.java:749) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.apache.catalina.core.StandardHost.startInternal(StandardHost.java:772) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.apache.catalina.util.LifecycleBase.start(LifecycleBase.java:164) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.apache.catalina.core.ContainerBase$StartChild.call(ContainerBase.java:1203) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.apache.catalina.core.ContainerBase$StartChild.call(ContainerBase.java:1193) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264) ~[na:na]
+	at org.apache.tomcat.util.threads.InlineExecutorService.execute(InlineExecutorService.java:75) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at java.base/java.util.concurrent.AbstractExecutorService.submit(AbstractExecutorService.java:145) ~[na:na]
+	at org.apache.catalina.core.ContainerBase.startInternal(ContainerBase.java:749) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.apache.catalina.core.StandardEngine.startInternal(StandardEngine.java:203) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.apache.catalina.util.LifecycleBase.start(LifecycleBase.java:164) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.apache.catalina.core.StandardService.startInternal(StandardService.java:415) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.apache.catalina.util.LifecycleBase.start(LifecycleBase.java:164) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.apache.catalina.core.StandardServer.startInternal(StandardServer.java:870) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.apache.catalina.util.LifecycleBase.start(LifecycleBase.java:164) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.apache.catalina.startup.Tomcat.start(Tomcat.java:437) ~[tomcat-embed-core-10.1.31.jar!/:na]
+	at org.springframework.boot.web.embedded.tomcat.TomcatWebServer.initialize(TomcatWebServer.java:128) ~[spring-boot-3.3.5.jar!/:3.3.5]
+	... 20 common frames omitted
+Caused by: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'firebaseAuth' defined in class path resource [com/inventory/management/api/config/FirebaseAdminConfig.class]: Unsatisfied dependency expressed through method 'firebaseAuth' parameter 0: Error creating bean with name 'firebaseApp' defined in class path resource [com/inventory/management/api/config/FirebaseAdminConfig.class]: Failed to instantiate [com.google.firebase.FirebaseApp]: Factory method 'firebaseApp' threw exception with message: Your default credentials were not found. To set up Application Default Credentials for your environment, see https://cloud.google.com/docs/authentication/external/set-up-adc.
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:795) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiateUsingFactoryMethod(ConstructorResolver.java:542) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.instantiateUsingFactoryMethod(AbstractAutowireCapableBeanFactory.java:1355) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1185) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:562) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:522) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:337) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:335) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:200) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.config.DependencyDescriptor.resolveCandidate(DependencyDescriptor.java:254) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1443) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1353) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:904) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:782) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	... 61 common frames omitted
+Caused by: org.springframework.beans.factory.BeanCreationException: Error creating bean with name 'firebaseApp' defined in class path resource [com/inventory/management/api/config/FirebaseAdminConfig.class]: Failed to instantiate [com.google.firebase.FirebaseApp]: Factory method 'firebaseApp' threw exception with message: Your default credentials were not found. To set up Application Default Credentials for your environment, see https://cloud.google.com/docs/authentication/external/set-up-adc.
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:648) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiateUsingFactoryMethod(ConstructorResolver.java:636) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.instantiateUsingFactoryMethod(AbstractAutowireCapableBeanFactory.java:1355) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBeanInstance(AbstractAutowireCapableBeanFactory.java:1185) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:562) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:522) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:337) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:335) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:200) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.config.DependencyDescriptor.resolveCandidate(DependencyDescriptor.java:254) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.doResolveDependency(DefaultListableBeanFactory.java:1443) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.resolveDependency(DefaultListableBeanFactory.java:1353) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.ConstructorResolver.resolveAutowiredArgument(ConstructorResolver.java:904) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.ConstructorResolver.createArgumentArray(ConstructorResolver.java:782) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	... 75 common frames omitted
+Caused by: org.springframework.beans.BeanInstantiationException: Failed to instantiate [com.google.firebase.FirebaseApp]: Factory method 'firebaseApp' threw exception with message: Your default credentials were not found. To set up Application Default Credentials for your environment, see https://cloud.google.com/docs/authentication/external/set-up-adc.
+	at org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiate(SimpleInstantiationStrategy.java:178) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	at org.springframework.beans.factory.support.ConstructorResolver.instantiate(ConstructorResolver.java:644) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	... 89 common frames omitted
+Caused by: java.io.IOException: Your default credentials were not found. To set up Application Default Credentials for your environment, see https://cloud.google.com/docs/authentication/external/set-up-adc.
+	at com.google.auth.oauth2.DefaultCredentialsProvider.getDefaultCredentials(DefaultCredentialsProvider.java:127) ~[google-auth-library-oauth2-http-1.23.0.jar!/:1.23.0]
+	at com.google.auth.oauth2.GoogleCredentials.getApplicationDefault(GoogleCredentials.java:152) ~[google-auth-library-oauth2-http-1.23.0.jar!/:1.23.0]
+	at com.google.auth.oauth2.GoogleCredentials.getApplicationDefault(GoogleCredentials.java:124) ~[google-auth-library-oauth2-http-1.23.0.jar!/:1.23.0]
+	at com.inventory.management.api.config.FirebaseAdminConfig.resolveCredentials(FirebaseAdminConfig.java:87) ~[!/:0.1.0]
+	at com.inventory.management.api.config.FirebaseAdminConfig.firebaseApp(FirebaseAdminConfig.java:28) ~[!/:0.1.0]
+	at com.inventory.management.api.config.FirebaseAdminConfig$$SpringCGLIB$$0.CGLIB$firebaseApp$0(<generated>) ~[!/:0.1.0]
+	at com.inventory.management.api.config.FirebaseAdminConfig$$SpringCGLIB$$FastClass$$1.invoke(<generated>) ~[!/:0.1.0]
+	at org.springframework.cglib.proxy.MethodProxy.invokeSuper(MethodProxy.java:258) ~[spring-core-6.1.14.jar!/:6.1.14]
+	at org.springframework.context.annotation.ConfigurationClassEnhancer$BeanMethodInterceptor.intercept(ConfigurationClassEnhancer.java:348) ~[spring-context-6.1.14.jar!/:6.1.14]
+	at com.inventory.management.api.config.FirebaseAdminConfig$$SpringCGLIB$$0.firebaseApp(<generated>) ~[!/:0.1.0]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
+	at org.springframework.beans.factory.support.SimpleInstantiationStrategy.instantiate(SimpleInstantiationStrategy.java:146) ~[spring-beans-6.1.14.jar!/:6.1.14]
+	... 90 common frames omitted
+

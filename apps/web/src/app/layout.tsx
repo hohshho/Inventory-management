@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Space_Grotesk } from "next/font/google";
+import Script from "next/script";
 import { AppShell } from "@/components/app-shell";
 import { Providers } from "@/components/providers";
 import "./globals.css";
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="ko" className={`${bodyFont.variable} ${displayFont.variable}`}>
       <body>
+        <Script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.5/kakao.min.js" strategy="afterInteractive" />
         <Providers>
           <AppShell>{children}</AppShell>
         </Providers>

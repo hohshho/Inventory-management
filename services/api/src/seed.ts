@@ -9,6 +9,7 @@ async function seed() {
 
   batch.set(adminDb.collection("groups").doc(demoGroupId), {
     name: "Demo Store",
+    nameKey: "demo store",
     inviteCode: "DEMO2000",
     isActive: true,
     createdBy: "seed-script",
@@ -80,6 +81,43 @@ async function seed() {
     },
   ];
 
+  const plannerTasks = [
+    {
+      id: "task-daily-fridge-check",
+      title: "냉장 재고 확인",
+      cadence: "daily",
+      dueDate: "2026-03-30",
+      reminderAt: "2026-03-30T09:00",
+    },
+    {
+      id: "task-weekly-order-review",
+      title: "주간 발주 수량 검토",
+      cadence: "weekly",
+      dueDate: "2026-04-01",
+      reminderAt: "2026-04-01T10:30",
+    },
+    {
+      id: "task-monthly-storage-audit",
+      title: "월간 창고 점검",
+      cadence: "monthly",
+      dueDate: "2026-04-05",
+      reminderAt: "2026-04-05T14:00",
+    },
+  ];
+
+  const plannerMemos = [
+    {
+      id: `${demoGroupId}_2026-03-30`,
+      memoDate: "2026-03-30",
+      note: "유통기한 임박 품목 다시 확인",
+    },
+    {
+      id: `${demoGroupId}_2026-04-01`,
+      memoDate: "2026-04-01",
+      note: "우유, 버터 발주 수량 조정",
+    },
+  ];
+
   locations.forEach((location) => {
     batch.set(adminDb.collection("locations").doc(location.id), {
       groupId: demoGroupId,
@@ -130,7 +168,35 @@ async function seed() {
       changeType: "create",
       reason: "초기 시드 데이터 생성",
       createdBy: "seed-script",
+      createdByName: "seed-script",
       createdAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  plannerTasks.forEach((task) => {
+    batch.set(adminDb.collection("planner_tasks").doc(task.id), {
+      groupId: demoGroupId,
+      title: task.title,
+      cadence: task.cadence,
+      dueDate: task.dueDate,
+      reminderAt: task.reminderAt,
+      isDone: false,
+      createdBy: "seed-script",
+      createdByName: "seed-script",
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  plannerMemos.forEach((memo) => {
+    batch.set(adminDb.collection("planner_memos").doc(memo.id), {
+      groupId: demoGroupId,
+      memoDate: memo.memoDate,
+      note: memo.note,
+      createdBy: "seed-script",
+      createdByName: "seed-script",
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
     });
   });
 

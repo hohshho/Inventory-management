@@ -1,5 +1,5 @@
-import { LocationsScreen } from "@/components/screens/locations-screen";
+import { StorageMapView } from "@/components/screens/storage-map-view";
 
 export default function LocationsPage() {
-  return <LocationsScreen />;
+  return <StorageMapView />;
 }

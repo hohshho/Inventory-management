@@ -1,0 +1,24 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------< com.inventory.management:api-spring >-----------------
+[INFO] Building inventory-management-api-spring 0.1.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+Downloading from central-https: https://repo1.maven.org/maven2/org/conscrypt/conscrypt-openjdk-uber/2.5.2/conscrypt-openjdk-uber-2.5.2.jar
+Progress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.1/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.2/4.5 MBProgress (1): 0.3/4.5 MBProgress (1): 0.3/4.5 MBProgress (1): 0.3/4.5 MBProgress (1): 0.3/4.5 MBProgress (1): 0.3/4.5 MBProgress (1): 0.3/4.5 MBProgress (1): 0.4/4.5 MBProgress (1): 0.4/4.5 MBProgress (1): 0.4/4.5 MBProgress (1): 0.4/4.5 MBProgress (1): 0.4/4.5 MBProgress (1): 0.4/4.5 MBProgress (1): 0.4/4.5 MBProgress (1): 0.5/4.5 MBProgress (1): 0.5/4.5 MBProgress (1): 0.5/4.5 MBProgress (1): 0.5/4.5 MBProgress (1): 0.5/4.5 MBProgress (1): 0.5/4.5 MBProgress (1): 0.6/4.5 MBProgress (1): 0.6/4.5 MBProgress (1): 0.6/4.5 MBProgress (1): 0.6/4.5 MBProgress (1): 0.6/4.5 MBProgress (1): 0.6/4.5 MBProgress (1): 0.7/4.5 MBProgress (1): 0.7/4.5 MBProgress (1): 0.7/4.5 MBProgress (1): 0.7/4.5 MBProgress (1): 0.7/4.5 MBProgress (1): 0.7/4.5 MBProgress (1): 0.8/4.5 MBProgress (1): 0.8/4.5 MBProgress (1): 0.8/4.5 MBProgress (1): 0.8/4.5 MBProgress (1): 0.8/4.5 MBProgress (1): 0.8/4.5 MBProgress (1): 0.8/4.5 MBProgress (1): 0.9/4.5 MBProgress (1): 0.9/4.5 MBProgress (1): 0.9/4.5 MBProgress (1): 0.9/4.5 MBProgress (1): 0.9/4.5 MBProgress (1): 0.9/4.5 MBProgress (1): 1.0/4.5 MBProgress (1): 1.0/4.5 MBProgress (1): 1.0/4.5 MBProgress (1): 1.0/4.5 MBProgress (1): 1.0/4.5 MBProgress (1): 1.0/4.5 MBProgress (1): 1.0/4.5 MB                        [INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  32:03 min
+[INFO] Finished at: 2026-03-30T17:30:08+09:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal on project api-spring: Could not resolve dependencies for project com.inventory.management:api-spring:jar:0.1.0
+[ERROR] dependency: org.conscrypt:conscrypt-openjdk-uber:jar:2.5.2 (compile)
+[ERROR] 	Could not transfer artifact org.conscrypt:conscrypt-openjdk-uber:jar:2.5.2 from/to central-https (https://repo1.maven.org/maven2): Read timed out
+[ERROR] 
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/DependencyResolutionException

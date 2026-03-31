@@ -1,0 +1,9 @@
+Summary for C:\github\Inventory-management\services\api-spring\target\api-spring-0.1.0.jar
+Decompiled with CFR 0.152
+
+
+com.inventory.management.api.service.OperationsService
+----------------------------
+
+getLocations(com.inventory.management.api.security.AuthenticatedUser )
+  Exception : java.lang.UnsupportedOperationException

@@ -1,7 +1,11 @@
-import { auth } from "@/lib/firebase/client";
+﻿import { auth } from "@/lib/firebase/client";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:2001";
+
+export type MembershipRole = "owner" | "full" | "write" | "read";
+export type InventoryStatus = "정상" | "주의" | "부족";
+export type JoinRequestStatus = "pending" | "approved" | "rejected";
 
 export type DashboardSummary = {
   itemCount: number;
@@ -26,7 +30,9 @@ export type InventoryItem = {
   locationName: string;
   quantity: number;
   unit: string;
-  status: "정상" | "주의" | "부족";
+  lowStockThreshold: number;
+  isLowStock: boolean;
+  status: InventoryStatus;
   updatedAtLabel: string;
 };
 
@@ -47,6 +53,9 @@ export type HistoryEntry = {
   afterQuantity: number;
   changeType: string;
   reason: string;
+  createdByName: string;
+  counterpartyName: string | null;
+  relatedLocationName: string | null;
   createdAtLabel: string;
 };
 
@@ -57,18 +66,104 @@ export type CreateItemInput = {
   memo?: string;
   locationId: string;
   initialQuantity: number;
+  lowStockThreshold?: number;
+};
+
+export type CreateLocationInput = {
+  name: string;
+  type?: string;
+  description?: string;
+};
+
+export type UpdateLocationInput = CreateLocationInput & {
+  locationId: string;
+};
+
+export type DeleteLocationInput = {
+  locationId: string;
+};
+
+export type CounterpartyType = "supplier" | "customer";
+
+export type Counterparty = {
+  id: string;
+  name: string;
+  type: CounterpartyType;
+  contact: string;
+  notes: string;
+};
+
+export type CreateCounterpartyInput = {
+  name: string;
+  type: CounterpartyType;
+  contact?: string;
+  notes?: string;
+};
+
+export type UpdateCounterpartyInput = CreateCounterpartyInput & {
+  counterpartyId: string;
+};
+
+export type DeleteCounterpartyInput = {
+  counterpartyId: string;
 };
 
 export type InventoryAdjustmentInput = {
   inventoryId: string;
-  changeType: "increase" | "decrease" | "manual_edit";
+  changeType: "increase" | "decrease" | "manual_edit" | "transfer";
   quantity: number;
   reason: string;
+  targetLocationId?: string;
+  counterpartyId?: string;
 };
 
 export type BarcodeResolutionResult = {
   found: boolean;
   inventory?: InventoryItem;
+};
+
+export type PlannerCadence = "daily" | "weekly" | "monthly";
+
+export type PlannerTask = {
+  id: string;
+  title: string;
+  cadence: PlannerCadence;
+  dueDate: string;
+  reminderAt: string | null;
+  reminderAtLabel: string | null;
+  isDone: boolean;
+  createdByName: string;
+};
+
+export type PlannerMemo = {
+  id: string;
+  memoDate: string;
+  note: string;
+  createdByName: string;
+  updatedAtLabel: string;
+};
+
+export type PlannerSummary = {
+  month: string;
+  tasks: PlannerTask[];
+  memos: PlannerMemo[];
+};
+
+export type CreatePlannerTaskInput = {
+  title: string;
+  cadence: PlannerCadence;
+  dueDate: string;
+  reminderAt?: string | null;
+};
+
+export type TogglePlannerTaskInput = {
+  taskId: string;
+  isDone: boolean;
+};
+
+export type UpsertPlannerMemoInput = {
+  memoDate: string;
+  note: string;
 };
 
 export type ItemRecord = {
@@ -77,6 +172,7 @@ export type ItemRecord = {
   barcode: string | null;
   defaultUnit: string;
   memo: string;
+  lowStockThreshold: number;
   isActive: boolean;
   createdAtLabel: string;
   updatedAtLabel: string;
@@ -88,13 +184,62 @@ export type ItemDetail = {
   adjustments: HistoryEntry[];
 };
 
+export type HistoricalSnapshot = {
+  at: string;
+  atLabel: string;
+  rows: Array<{
+    locationId: string;
+    locationName: string;
+    quantity: number;
+    unit: string;
+    status: InventoryStatus;
+  }>;
+};
+
+export type LowStockAlert = {
+  inventoryId: string;
+  itemId: string;
+  itemName: string;
+  locationId: string;
+  locationName: string;
+  quantity: number;
+  unit: string;
+  lowStockThreshold: number;
+  status: InventoryStatus;
+};
+
 export type GroupMembership = {
   id: string;
   groupId: string;
   groupName: string;
-  inviteCode: string;
-  role: string;
+  inviteCode: string | null;
+  role: MembershipRole;
   isActive: boolean;
+};
+
+export type GroupMember = {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: MembershipRole;
+  isCurrentUser: boolean;
+  isActive: boolean;
+};
+
+export type GroupJoinRequest = {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  status: JoinRequestStatus;
+  requestedAtLabel: string;
+};
+
+export type JoinGroupResult = {
+  status: "pending" | "already_member";
+  message: string;
+  session?: UserSession;
 };
 
 export type UserSession = {
@@ -105,6 +250,7 @@ export type UserSession = {
   isActive: boolean;
   activeGroupId: string | null;
   activeGroupName: string | null;
+  activeGroupRole: MembershipRole | null;
   memberships: GroupMembership[];
 };
 
@@ -158,3 +304,4 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
 
   return parseResponse<T>(response);
 }
+

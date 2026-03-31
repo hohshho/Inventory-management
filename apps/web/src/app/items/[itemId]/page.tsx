@@ -1,4 +1,4 @@
-import { ItemDetailScreen } from "@/components/screens/item-detail-screen";
+import { ItemProfileView } from "@/components/screens/item-profile-view";
 
 type ItemDetailPageProps = {
   params: Promise<{
@@ -9,5 +9,5 @@ type ItemDetailPageProps = {
 export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
   const { itemId } = await params;
 
-  return <ItemDetailScreen itemId={itemId} />;
+  return <ItemProfileView itemId={itemId} />;
 }

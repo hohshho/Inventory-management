@@ -1,5 +1,5 @@
-import { ItemFormScreen } from "@/components/screens/item-form-screen";
+import { ItemCreateView } from "@/components/screens/item-create-view";
 
 export default function NewItemPage() {
-  return <ItemFormScreen />;
+  return <ItemCreateView />;
 }

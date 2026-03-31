@@ -1,5 +1,5 @@
-import { GroupManagementScreen } from "@/components/screens/group-management-screen";
+import { WorkspaceGroupsView } from "@/components/screens/workspace-groups-view";
 
 export default function GroupsPage() {
-  return <GroupManagementScreen />;
+  return <WorkspaceGroupsView />;
 }
