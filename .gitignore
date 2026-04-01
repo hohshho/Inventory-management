@@ -16,3 +16,5 @@ yarn-error.log*
 **/*.tsbuildinfo
 apps/web/next-env.d.ts
 secret/
+target/
+**/target/
