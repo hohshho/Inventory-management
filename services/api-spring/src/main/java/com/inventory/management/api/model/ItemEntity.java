@@ -28,6 +28,16 @@ public class ItemEntity {
     public String name;
     public String barcode;
     @Column(nullable=false)
+    public String categoryLevel1 = "";
+    @Column(nullable=false)
+    public String categoryLevel2 = "";
+    @Column(nullable=false)
+    public String categoryLevel3 = "";
+    @Column(nullable=false)
+    public String size = "";
+    @Column(nullable=false, length=4000)
+    public String customFieldsJson = "[]";
+    @Column(nullable=false)
     public String defaultUnit = "ea";
     @Column(nullable=false, length=2000)
     public String memo = "";
@@ -44,4 +54,3 @@ public class ItemEntity {
     @Column(nullable=false)
     public Instant updatedAt = Instant.now();
 }
-

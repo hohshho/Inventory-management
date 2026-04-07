@@ -54,6 +54,8 @@
  */
 package com.inventory.management.api.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inventory.management.api.dto.ApiTypes;
 import com.inventory.management.api.model.CounterpartyEntity;
 import com.inventory.management.api.model.InventoryAdjustmentEntity;
@@ -91,6 +93,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class OperationsService {
     private static final int MAX_ITEMS_PER_GROUP = 300;
+    private static final int HISTORY_FEED_LIMIT = 100;
     private final AccessService accessService;
     private final ItemRepository itemRepository;
     private final InventoryRepository inventoryRepository;
@@ -99,8 +102,9 @@ public class OperationsService {
     private final CounterpartyRepository counterpartyRepository;
     private final PlannerTaskRepository plannerTaskRepository;
     private final PlannerMemoRepository plannerMemoRepository;
+    private final ObjectMapper objectMapper;
 
-    public OperationsService(AccessService accessService, ItemRepository itemRepository, InventoryRepository inventoryRepository, InventoryAdjustmentRepository inventoryAdjustmentRepository, LocationRepository locationRepository, CounterpartyRepository counterpartyRepository, PlannerTaskRepository plannerTaskRepository, PlannerMemoRepository plannerMemoRepository) {
+    public OperationsService(AccessService accessService, ItemRepository itemRepository, InventoryRepository inventoryRepository, InventoryAdjustmentRepository inventoryAdjustmentRepository, LocationRepository locationRepository, CounterpartyRepository counterpartyRepository, PlannerTaskRepository plannerTaskRepository, PlannerMemoRepository plannerMemoRepository, ObjectMapper objectMapper) {
         this.accessService = accessService;
         this.itemRepository = itemRepository;
         this.inventoryRepository = inventoryRepository;
@@ -109,6 +113,7 @@ public class OperationsService {
         this.counterpartyRepository = counterpartyRepository;
         this.plannerTaskRepository = plannerTaskRepository;
         this.plannerMemoRepository = plannerMemoRepository;
+        this.objectMapper = objectMapper;
     }
 
     public ApiTypes.DashboardSummaryResponse getDashboardSummary(AuthenticatedUser user) {
@@ -180,7 +185,21 @@ public class OperationsService {
         location.createdBy = user.uid();
         location.updatedBy = user.uid();
         location.updatedAt = location.createdAt = Instant.now();
-        this.locationRepository.save((Object)location);
+        this.locationRepository.save(location);
+        this.inventoryAdjustmentRepository.save(this.createActivityLog(
+            groupId,
+            location.id,
+            location.name,
+            location.id,
+            location.name,
+            "location_create",
+            "보관 위치를 생성했습니다.",
+            user.uid(),
+            profile.name,
+            null,
+            null,
+            "location"
+        ));
         return new ApiTypes.IdResponse(location.id);
     }
 
@@ -196,7 +215,7 @@ public class OperationsService {
         String groupId = this.accessService.requireActiveGroup(profile);
         this.accessService.requireInventoryWriteAccess(groupId, user.uid());
 
-        LocationEntity location = (LocationEntity) this.locationRepository.findById((Object) locationId)
+        LocationEntity location = this.locationRepository.findById(locationId)
             .orElseThrow(() -> new ApiException(404, "location not found"));
         if (!groupId.equals(location.groupId) || !location.isActive) {
             throw new ApiException(404, "location not found");
@@ -214,7 +233,7 @@ public class OperationsService {
         location.description = Objects.toString(request.description(), "");
         location.updatedBy = user.uid();
         location.updatedAt = Instant.now();
-        this.locationRepository.save((Object) location);
+        this.locationRepository.save(location);
         return new ApiTypes.IdResponse(location.id);
     }
 
@@ -229,7 +248,7 @@ public class OperationsService {
         String groupId = this.accessService.requireActiveGroup(profile);
         this.accessService.requireInventoryWriteAccess(groupId, user.uid());
 
-        LocationEntity location = (LocationEntity) this.locationRepository.findById((Object) locationId)
+        LocationEntity location = this.locationRepository.findById(locationId)
             .orElseThrow(() -> new ApiException(404, "location not found"));
         if (!groupId.equals(location.groupId) || !location.isActive) {
             throw new ApiException(404, "location not found");
@@ -238,7 +257,7 @@ public class OperationsService {
         location.isActive = false;
         location.updatedBy = user.uid();
         location.updatedAt = Instant.now();
-        this.locationRepository.save((Object) location);
+        this.locationRepository.save(location);
         return new ApiTypes.IdResponse(location.id);
     }
 
@@ -278,7 +297,21 @@ public class OperationsService {
         counterparty.createdBy = user.uid();
         counterparty.updatedBy = user.uid();
         counterparty.updatedAt = counterparty.createdAt = Instant.now();
-        this.counterpartyRepository.save((Object)counterparty);
+        this.counterpartyRepository.save(counterparty);
+        this.inventoryAdjustmentRepository.save(this.createActivityLog(
+            groupId,
+            counterparty.id,
+            counterparty.name,
+            "",
+            "거래처",
+            "counterparty_create",
+            "거래처를 등록했습니다.",
+            user.uid(),
+            profile.name,
+            counterparty.name,
+            "supplier".equals(counterparty.type) ? "공급처" : "고객",
+            "counterparty"
+        ));
         return new ApiTypes.IdResponse(counterparty.id);
     }
 
@@ -297,7 +330,7 @@ public class OperationsService {
         String groupId = this.accessService.requireActiveGroup(profile);
         this.accessService.requireInventoryWriteAccess(groupId, user.uid());
 
-        CounterpartyEntity counterparty = (CounterpartyEntity) this.counterpartyRepository.findById((Object) counterpartyId)
+        CounterpartyEntity counterparty = this.counterpartyRepository.findById(counterpartyId)
             .orElseThrow(() -> new ApiException(404, "counterparty not found"));
         if (!groupId.equals(counterparty.groupId) || !counterparty.isActive) {
             throw new ApiException(404, "counterparty not found");
@@ -318,7 +351,7 @@ public class OperationsService {
         counterparty.notes = Objects.toString(request.notes(), "");
         counterparty.updatedBy = user.uid();
         counterparty.updatedAt = Instant.now();
-        this.counterpartyRepository.save((Object) counterparty);
+        this.counterpartyRepository.save(counterparty);
         return new ApiTypes.IdResponse(counterparty.id);
     }
 
@@ -333,7 +366,7 @@ public class OperationsService {
         String groupId = this.accessService.requireActiveGroup(profile);
         this.accessService.requireInventoryWriteAccess(groupId, user.uid());
 
-        CounterpartyEntity counterparty = (CounterpartyEntity) this.counterpartyRepository.findById((Object) counterpartyId)
+        CounterpartyEntity counterparty = this.counterpartyRepository.findById(counterpartyId)
             .orElseThrow(() -> new ApiException(404, "counterparty not found"));
         if (!groupId.equals(counterparty.groupId) || !counterparty.isActive) {
             throw new ApiException(404, "counterparty not found");
@@ -342,7 +375,7 @@ public class OperationsService {
         counterparty.isActive = false;
         counterparty.updatedBy = user.uid();
         counterparty.updatedAt = Instant.now();
-        this.counterpartyRepository.save((Object) counterparty);
+        this.counterpartyRepository.save(counterparty);
         return new ApiTypes.IdResponse(counterparty.id);
     }
 
@@ -353,7 +386,10 @@ public class OperationsService {
     public List<ApiTypes.AdjustmentResponse> getHistory(AuthenticatedUser user) {
         UserProfileEntity profile = this.accessService.requireActiveProfile(user.uid());
         String groupId = this.accessService.requireActiveGroup(profile);
-        return this.inventoryAdjustmentRepository.findTop20ByGroupIdOrderByCreatedAtDesc(groupId).stream().map(arg_0 -> this.mapAdjustment(arg_0)).toList();
+        return this.inventoryAdjustmentRepository.findRecentByGroupIdOrderByCreatedAtDesc(groupId, HISTORY_FEED_LIMIT)
+            .stream()
+            .map(this::mapAdjustment)
+            .toList();
     }
 
     public List<ApiTypes.ItemResponse> getItems(AuthenticatedUser user, String search) {
@@ -366,7 +402,7 @@ public class OperationsService {
     public ApiTypes.ItemDetailResponse getItemDetail(AuthenticatedUser user, String itemId) {
         UserProfileEntity profile = this.accessService.requireActiveProfile(user.uid());
         String groupId = this.accessService.requireActiveGroup(profile);
-        ItemEntity item = (ItemEntity)this.itemRepository.findById((Object)itemId).orElseThrow(() -> new ApiException(404, "item not found"));
+        ItemEntity item = this.itemRepository.findById(itemId).orElseThrow(() -> new ApiException(404, "item not found"));
         if (!groupId.equals(item.groupId)) {
             throw new ApiException(404, "item not found");
         }
@@ -389,7 +425,11 @@ public class OperationsService {
     public ApiTypes.ItemCreateResponse createItem(AuthenticatedUser user, ApiTypes.CreateItemRequest request) {
         int lowStockThreshold;
         String name = this.trim(request == null ? null : request.name());
+        String categoryLevel1 = this.trim(request == null ? null : request.categoryLevel1());
+        String categoryLevel2 = this.trim(request == null ? null : request.categoryLevel2());
+        String categoryLevel3 = this.trim(request == null ? null : request.categoryLevel3());
         String defaultUnit = this.trim(request == null ? null : request.defaultUnit());
+        String size = this.trim(request == null ? null : request.size());
         String locationId = this.trim(request == null ? null : request.locationId());
         int initialQuantity = request == null || request.initialQuantity() == null ? 0 : request.initialQuantity();
         int n = lowStockThreshold = request == null || request.lowStockThreshold() == null ? 3 : request.lowStockThreshold();
@@ -412,7 +452,7 @@ public class OperationsService {
         if (barcode != null && this.itemRepository.findByGroupIdAndBarcode(groupId, barcode).isPresent()) {
             throw new ApiException(409, "barcode already exists");
         }
-        LocationEntity location = (LocationEntity)this.locationRepository.findById((Object)locationId).orElseThrow(() -> new ApiException(404, "location not found"));
+        LocationEntity location = this.locationRepository.findById(locationId).orElseThrow(() -> new ApiException(404, "location not found"));
         if (!groupId.equals(location.groupId)) {
             throw new ApiException(404, "location not found");
         }
@@ -421,13 +461,18 @@ public class OperationsService {
         item.groupId = groupId;
         item.name = name;
         item.barcode = barcode;
+        item.categoryLevel1 = Objects.toString(categoryLevel1, "");
+        item.categoryLevel2 = Objects.toString(categoryLevel2, "");
+        item.categoryLevel3 = Objects.toString(categoryLevel3, "");
+        item.size = Objects.toString(size, "");
+        item.customFieldsJson = this.serializeCustomFields(request == null ? List.of() : request.customFields());
         item.defaultUnit = defaultUnit;
         item.memo = Objects.toString(request.memo(), "");
         item.lowStockThreshold = lowStockThreshold;
         item.createdBy = user.uid();
         item.updatedBy = user.uid();
         item.updatedAt = item.createdAt = Instant.now();
-        this.itemRepository.save((Object)item);
+        this.itemRepository.save(item);
         InventoryEntity inventory = new InventoryEntity();
         inventory.id = this.inventoryId(item.id, location.id);
         inventory.groupId = groupId;
@@ -441,7 +486,7 @@ public class OperationsService {
         inventory.lowStockThreshold = lowStockThreshold;
         inventory.updatedAt = inventory.createdAt = Instant.now();
         inventory.updatedBy = user.uid();
-        this.inventoryRepository.save((Object)inventory);
+        this.inventoryRepository.save(inventory);
         InventoryAdjustmentEntity adjustment = new InventoryAdjustmentEntity();
         adjustment.id = ApiUtils.generateId();
         adjustment.groupId = groupId;
@@ -458,8 +503,63 @@ public class OperationsService {
         adjustment.unit = defaultUnit;
         adjustment.lowStockThreshold = lowStockThreshold;
         adjustment.createdAt = Instant.now();
-        this.inventoryAdjustmentRepository.save((Object)adjustment);
+        this.inventoryAdjustmentRepository.save(adjustment);
         return new ApiTypes.ItemCreateResponse(item.id, inventory.id);
+    }
+
+    @Transactional
+    public ApiTypes.IdResponse updateItem(AuthenticatedUser user, ApiTypes.UpdateItemRequest request) {
+        String itemId = this.trim(request == null ? null : request.itemId());
+        String name = this.trim(request == null ? null : request.name());
+        String categoryLevel1 = this.trim(request == null ? null : request.categoryLevel1());
+        String categoryLevel2 = this.trim(request == null ? null : request.categoryLevel2());
+        String categoryLevel3 = this.trim(request == null ? null : request.categoryLevel3());
+        String size = this.trim(request == null ? null : request.size());
+        String defaultUnit = this.trim(request == null ? null : request.defaultUnit());
+        Integer lowStockThreshold = request == null ? null : request.lowStockThreshold();
+        if (itemId == null || name == null || defaultUnit == null || lowStockThreshold == null) {
+            throw new ApiException(400, "itemId, name, defaultUnit, lowStockThreshold are required");
+        }
+        if (lowStockThreshold < 1) {
+            throw new ApiException(400, "low stock threshold must be 1 or greater");
+        }
+        UserProfileEntity profile = this.accessService.requireActiveProfile(user.uid());
+        String groupId = this.accessService.requireActiveGroup(profile);
+        this.accessService.requireInventoryWriteAccess(groupId, user.uid());
+        ItemEntity item = this.itemRepository.findById(itemId).orElseThrow(() -> new ApiException(404, "item not found"));
+        if (!groupId.equals(item.groupId) || !item.isActive) {
+            throw new ApiException(404, "item not found");
+        }
+        String barcode = this.trim(request.barcode());
+        ItemEntity barcodeOwner = barcode == null ? null : this.itemRepository.findByGroupIdAndBarcode(groupId, barcode).orElse(null);
+        if (barcodeOwner != null && !item.id.equals(barcodeOwner.id)) {
+            throw new ApiException(409, "barcode already exists");
+        }
+        item.name = name;
+        item.barcode = barcode;
+        item.categoryLevel1 = Objects.toString(categoryLevel1, "");
+        item.categoryLevel2 = Objects.toString(categoryLevel2, "");
+        item.categoryLevel3 = Objects.toString(categoryLevel3, "");
+        item.size = Objects.toString(size, "");
+        item.customFieldsJson = this.serializeCustomFields(request == null ? List.of() : request.customFields());
+        item.defaultUnit = defaultUnit;
+        item.memo = Objects.toString(request.memo(), "");
+        item.lowStockThreshold = lowStockThreshold;
+        item.updatedBy = user.uid();
+        item.updatedAt = Instant.now();
+        this.itemRepository.save(item);
+
+        List<InventoryEntity> inventories = this.inventoryRepository.findByGroupIdAndItemId(groupId, item.id);
+        for (InventoryEntity inventory : inventories) {
+            inventory.itemName = item.name;
+            inventory.barcode = item.barcode;
+            inventory.unit = item.defaultUnit;
+            inventory.lowStockThreshold = item.lowStockThreshold;
+            inventory.updatedBy = user.uid();
+            inventory.updatedAt = Instant.now();
+        }
+        this.inventoryRepository.saveAll(inventories);
+        return new ApiTypes.IdResponse(item.id);
     }
 
     @Transactional
@@ -476,7 +576,7 @@ public class OperationsService {
         UserProfileEntity profile = this.accessService.requireActiveProfile(user.uid());
         String groupId = this.accessService.requireActiveGroup(profile);
         this.accessService.requireInventoryWriteAccess(groupId, user.uid());
-        InventoryEntity inventory = (InventoryEntity)this.inventoryRepository.findById((Object)request.inventoryId()).orElseThrow(() -> new ApiException(404, "inventory not found"));
+        InventoryEntity inventory = this.inventoryRepository.findById(request.inventoryId()).orElseThrow(() -> new ApiException(404, "inventory not found"));
         if (!groupId.equals(inventory.groupId)) {
             throw new ApiException(404, "inventory not found");
         }
@@ -486,7 +586,7 @@ public class OperationsService {
         }
         String counterpartyName = null;
         if (this.trim(request.counterpartyId()) != null) {
-            CounterpartyEntity counterparty = (CounterpartyEntity)this.counterpartyRepository.findById((Object)request.counterpartyId()).orElseThrow(() -> new ApiException(404, "counterparty not found"));
+            CounterpartyEntity counterparty = this.counterpartyRepository.findById(request.counterpartyId()).orElseThrow(() -> new ApiException(404, "counterparty not found"));
             if (!groupId.equals(counterparty.groupId)) {
                 throw new ApiException(404, "counterparty not found");
             }
@@ -498,7 +598,7 @@ public class OperationsService {
             if (targetLocationId == null || targetLocationId.equals(inventory.locationId)) {
                 throw new ApiException(400, "target location is required for transfer");
             }
-            LocationEntity targetLocation = (LocationEntity)this.locationRepository.findById((Object)targetLocationId).orElseThrow(() -> new ApiException(404, "location not found"));
+            LocationEntity targetLocation = this.locationRepository.findById(targetLocationId).orElseThrow(() -> new ApiException(404, "location not found"));
             if (!groupId.equals(targetLocation.groupId)) {
                 throw new ApiException(404, "location not found");
             }
@@ -506,9 +606,9 @@ public class OperationsService {
             inventory.quantity = nextQuantity;
             inventory.updatedAt = Instant.now();
             inventory.updatedBy = user.uid();
-            this.inventoryRepository.save((Object)inventory);
+            this.inventoryRepository.save(inventory);
             String targetInventoryId = this.inventoryId(inventory.itemId, targetLocation.id);
-            InventoryEntity targetInventory = this.inventoryRepository.findById((Object)targetInventoryId).orElse(null);
+            InventoryEntity targetInventory = this.inventoryRepository.findById(targetInventoryId).orElse(null);
             int n = targetBeforeQuantity = targetInventory == null ? 0 : targetInventory.quantity;
             if (targetInventory == null) {
                 targetInventory = new InventoryEntity();
@@ -526,20 +626,20 @@ public class OperationsService {
             targetInventory.quantity = targetBeforeQuantity + request.quantity();
             targetInventory.updatedAt = Instant.now();
             targetInventory.updatedBy = user.uid();
-            this.inventoryRepository.save((Object)targetInventory);
+            this.inventoryRepository.save(targetInventory);
             InventoryAdjustmentEntity transferOut = this.createAdjustment(groupId, inventory, inventory.locationId, inventory.locationName, transferBeforeQuantity, nextQuantity, "transfer_out", request.reason(), user.uid(), profile.name, null, targetLocation.name);
-            this.inventoryAdjustmentRepository.save((Object)transferOut);
+            this.inventoryAdjustmentRepository.save(transferOut);
             InventoryAdjustmentEntity transferIn = this.createAdjustment(groupId, inventory, targetLocation.id, targetLocation.name, targetBeforeQuantity, targetInventory.quantity, "transfer_in", request.reason(), user.uid(), profile.name, null, inventory.locationName);
-            this.inventoryAdjustmentRepository.save((Object)transferIn);
+            this.inventoryAdjustmentRepository.save(transferIn);
             return new ApiTypes.AdjustmentCreateResponse(inventory.id, transferOut.id, transferBeforeQuantity, nextQuantity);
         }
         int beforeQuantity = inventory.quantity;
         inventory.quantity = nextQuantity;
         inventory.updatedAt = Instant.now();
         inventory.updatedBy = user.uid();
-        this.inventoryRepository.save((Object)inventory);
+        this.inventoryRepository.save(inventory);
         InventoryAdjustmentEntity adjustment = this.createAdjustment(groupId, inventory, inventory.locationId, inventory.locationName, beforeQuantity, nextQuantity, request.changeType(), request.reason(), user.uid(), profile.name, counterpartyName, null);
-        this.inventoryAdjustmentRepository.save((Object)adjustment);
+        this.inventoryAdjustmentRepository.save(adjustment);
         return new ApiTypes.AdjustmentCreateResponse(inventory.id, adjustment.id, beforeQuantity, nextQuantity);
     }
 
@@ -589,7 +689,7 @@ public class OperationsService {
         task.createdBy = user.uid();
         task.createdByName = profile.name;
         task.updatedAt = task.createdAt = Instant.now();
-        this.plannerTaskRepository.save((Object)task);
+        this.plannerTaskRepository.save(task);
         return new ApiTypes.IdResponse(task.id);
     }
 
@@ -601,38 +701,59 @@ public class OperationsService {
         UserProfileEntity profile = this.accessService.requireActiveProfile(user.uid());
         String groupId = this.accessService.requireActiveGroup(profile);
         this.accessService.requireInventoryWriteAccess(groupId, user.uid());
-        PlannerTaskEntity task = (PlannerTaskEntity)this.plannerTaskRepository.findById((Object)request.taskId()).orElseThrow(() -> new ApiException(404, "planner task not found"));
+        PlannerTaskEntity task = this.plannerTaskRepository.findById(request.taskId()).orElseThrow(() -> new ApiException(404, "planner task not found"));
         if (!groupId.equals(task.groupId)) {
             throw new ApiException(404, "planner task not found");
         }
         task.isDone = request.isDone();
         task.updatedAt = Instant.now();
         task.updatedBy = user.uid();
-        this.plannerTaskRepository.save((Object)task);
+        this.plannerTaskRepository.save(task);
         return new ApiTypes.PlannerTaskToggleResponse(task.id, task.isDone);
     }
 
     @Transactional
+    public ApiTypes.IdResponse deletePlannerTask(AuthenticatedUser user, ApiTypes.DeletePlannerTaskRequest request) {
+        if (this.trim(request == null ? null : request.taskId()) == null) {
+            throw new ApiException(400, "taskId is required");
+        }
+        UserProfileEntity profile = this.accessService.requireActiveProfile(user.uid());
+        String groupId = this.accessService.requireActiveGroup(profile);
+        this.accessService.requireInventoryWriteAccess(groupId, user.uid());
+        PlannerTaskEntity task = this.plannerTaskRepository.findById(request.taskId()).orElseThrow(() -> new ApiException(404, "planner task not found"));
+        if (!groupId.equals(task.groupId)) {
+            throw new ApiException(404, "planner task not found");
+        }
+        this.plannerTaskRepository.delete(task);
+        return new ApiTypes.IdResponse(task.id);
+    }
+
+    @Transactional
     public ApiTypes.IdResponse upsertPlannerMemo(AuthenticatedUser user, ApiTypes.UpsertPlannerMemoRequest request) {
-        if (this.trim(request == null ? null : request.memoDate()) == null || this.trim(request == null ? null : request.note()) == null) {
-            throw new ApiException(400, "memoDate and note are required");
+        if (this.trim(request == null ? null : request.memoDate()) == null) {
+            throw new ApiException(400, "memoDate is required");
         }
         UserProfileEntity profile = this.accessService.requireActiveProfile(user.uid());
         String groupId = this.accessService.requireActiveGroup(profile);
         this.accessService.requireInventoryWriteAccess(groupId, user.uid());
         String id = this.inventoryId(groupId, request.memoDate().trim());
-        PlannerMemoEntity memo = this.plannerMemoRepository.findById((Object)id).orElseGet(PlannerMemoEntity::new);
+        String note = Objects.toString(request.note(), "").trim();
+        if (note.isEmpty()) {
+            this.plannerMemoRepository.findById(id).ifPresent(this.plannerMemoRepository::delete);
+            return new ApiTypes.IdResponse(id);
+        }
+        PlannerMemoEntity memo = this.plannerMemoRepository.findById(id).orElseGet(PlannerMemoEntity::new);
         memo.id = id;
         memo.groupId = groupId;
         memo.memoDate = request.memoDate().trim();
-        memo.note = request.note().trim();
+        memo.note = note;
         memo.createdBy = user.uid();
         memo.createdByName = profile.name;
         if (memo.createdAt == null) {
             memo.createdAt = Instant.now();
         }
         memo.updatedAt = Instant.now();
-        this.plannerMemoRepository.save((Object)memo);
+        this.plannerMemoRepository.save(memo);
         return new ApiTypes.IdResponse(memo.id);
     }
 
@@ -652,6 +773,28 @@ public class OperationsService {
         adjustment.createdByName = createdByName;
         adjustment.unit = inventory.unit;
         adjustment.lowStockThreshold = inventory.lowStockThreshold;
+        adjustment.counterpartyName = counterpartyName;
+        adjustment.relatedLocationName = relatedLocationName;
+        adjustment.createdAt = Instant.now();
+        return adjustment;
+    }
+
+    private InventoryAdjustmentEntity createActivityLog(String groupId, String itemId, String itemName, String locationId, String locationName, String changeType, String reason, String createdBy, String createdByName, String counterpartyName, String relatedLocationName, String unit) {
+        InventoryAdjustmentEntity adjustment = new InventoryAdjustmentEntity();
+        adjustment.id = ApiUtils.generateId();
+        adjustment.groupId = groupId;
+        adjustment.itemId = itemId;
+        adjustment.itemName = itemName;
+        adjustment.locationId = locationId;
+        adjustment.locationName = locationName;
+        adjustment.beforeQuantity = 0;
+        adjustment.afterQuantity = 0;
+        adjustment.changeType = changeType;
+        adjustment.reason = reason;
+        adjustment.createdBy = createdBy;
+        adjustment.createdByName = createdByName;
+        adjustment.unit = unit;
+        adjustment.lowStockThreshold = 0;
         adjustment.counterpartyName = counterpartyName;
         adjustment.relatedLocationName = relatedLocationName;
         adjustment.createdAt = Instant.now();
@@ -686,7 +829,34 @@ public class OperationsService {
     }
 
     private ApiTypes.ItemResponse mapItem(ItemEntity item) {
-        return new ApiTypes.ItemResponse(item.id, item.name, item.barcode, item.defaultUnit, item.memo, item.lowStockThreshold, item.isActive, ApiUtils.timestampLabel((Instant)item.createdAt), ApiUtils.timestampLabel((Instant)item.updatedAt));
+        return new ApiTypes.ItemResponse(item.id, item.name, item.barcode, Objects.toString(item.categoryLevel1, ""), Objects.toString(item.categoryLevel2, ""), Objects.toString(item.categoryLevel3, ""), Objects.toString(item.size, ""), this.deserializeCustomFields(item.customFieldsJson), item.defaultUnit, Objects.toString(item.memo, ""), item.lowStockThreshold, item.isActive, ApiUtils.timestampLabel((Instant)item.createdAt), ApiUtils.timestampLabel((Instant)item.updatedAt));
+    }
+
+    private String serializeCustomFields(List<ApiTypes.ItemCustomField> customFields) {
+        List<ApiTypes.ItemCustomField> safeFields = customFields == null
+            ? List.of()
+            : customFields.stream()
+                .filter(field -> this.trim(field.label()) != null && this.trim(field.value()) != null)
+                .map(field -> new ApiTypes.ItemCustomField(field.label().trim(), field.value().trim()))
+                .toList();
+        try {
+            return this.objectMapper.writeValueAsString(safeFields);
+        }
+        catch (Exception exception) {
+            throw new ApiException(400, "custom fields are invalid");
+        }
+    }
+
+    private List<ApiTypes.ItemCustomField> deserializeCustomFields(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return List.of();
+        }
+        try {
+            return this.objectMapper.readValue(rawValue, new TypeReference<List<ApiTypes.ItemCustomField>>() {});
+        }
+        catch (Exception ignore) {
+            return List.of();
+        }
     }
 
     private ApiTypes.InventoryResponse mapInventory(InventoryEntity inventory) {

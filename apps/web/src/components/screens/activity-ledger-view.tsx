@@ -8,12 +8,14 @@ function getEntryLabel(adjustmentType: string) {
   if (adjustmentType === "transfer_in") return "이동 입고";
   if (adjustmentType === "transfer_out") return "위치 이동";
   if (adjustmentType === "create") return "초기 등록";
+  if (adjustmentType === "location_create") return "위치 생성";
+  if (adjustmentType === "counterparty_create") return "거래처 생성";
   return "직접 수정";
 }
 
 function getEntryTone(adjustmentType: string) {
   if (adjustmentType === "decrease" || adjustmentType === "transfer_out") return "danger";
-  if (adjustmentType === "manual_edit") return "warn";
+  if (adjustmentType === "manual_edit" || adjustmentType === "counterparty_create") return "warn";
   return "ok";
 }
 
@@ -27,6 +29,7 @@ export function ActivityLedgerView() {
   const increaseRowCount = historyRows.filter((row) => row.changeType === "increase").length;
   const decreaseRowCount = historyRows.filter((row) => row.changeType === "decrease").length;
   const transferRowCount = historyRows.filter((row) => row.changeType.startsWith("transfer")).length;
+  const createRowCount = historyRows.filter((row) => row.changeType === "create").length;
 
   return (
     <div className="view-stack workbench-page">
@@ -53,6 +56,10 @@ export function ActivityLedgerView() {
           <article className="metric-card">
             <span className="metric-label">위치 이동</span>
             <strong>{transferRowCount}</strong>
+          </article>
+          <article className="metric-card">
+            <span className="metric-label">초기 등록</span>
+            <strong>{createRowCount}</strong>
           </article>
         </div>
       </section>

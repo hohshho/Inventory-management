@@ -74,9 +74,11 @@ public class AccessService {
 
     @Transactional
     public ApiTypes.UserSessionResponse syncUser(AuthenticatedUser user, ApiTypes.SyncUserRequest request) {
-        UserProfileEntity existing = this.userProfileRepository.findById((Object)user.uid()).orElse(null);
+        UserProfileEntity existing = this.userProfileRepository.findById(user.uid()).orElse(null);
         String preferredName = request == null ? null : this.trim(request.name());
+        String preferredEmail = request == null ? null : this.trim(request.email());
         String nextName = this.firstNonBlank(new String[]{preferredName, user.name(), user.email() == null ? null : user.email().split("@")[0], existing == null ? null : existing.name, user.uid()});
+        String nextEmail = this.firstNonBlank(new String[]{preferredEmail, existing == null ? null : existing.email, user.email(), ""});
         if (existing == null) {
             existing = new UserProfileEntity();
             existing.id = user.uid();
@@ -85,12 +87,12 @@ public class AccessService {
         for (GroupMembershipEntity membership : this.groupMembershipRepository.findByUserIdAndIsActiveTrue(user.uid())) {
             this.assertParticipantNameAvailable(membership.groupId, nextName, user.uid());
         }
-        existing.email = Objects.toString(user.email(), existing.email);
+        existing.email = nextEmail;
         existing.name = nextName;
-        existing.role = this.isMasterEmail(existing.email) ? "master" : this.firstNonBlank(new String[]{existing.role, "staff"});
+        existing.role = this.isMasterEmail(Objects.toString(user.email(), existing.email)) ? "master" : this.firstNonBlank(new String[]{existing.role, "staff"});
         existing.isActive = existing.isActive;
         existing.updatedAt = Instant.now();
-        this.userProfileRepository.save((Object)existing);
+        this.userProfileRepository.save(existing);
         return this.buildSession(user.uid());
     }
 
@@ -100,7 +102,7 @@ public class AccessService {
     }
 
     public UserProfileEntity requireActiveProfile(String userId) {
-        UserProfileEntity profile = (UserProfileEntity)this.userProfileRepository.findById((Object)userId).orElseThrow(() -> new ApiException(403, "User profile not found. Sync user first."));
+        UserProfileEntity profile = this.userProfileRepository.findById(userId).orElseThrow(() -> new ApiException(403, "User profile not found. Sync user first."));
         if (!profile.isActive) {
             throw new ApiException(403, "User is disabled.");
         }
@@ -129,7 +131,7 @@ public class AccessService {
     }
 
     public GroupEntity requireActiveGroupEntity(String groupId) {
-        GroupEntity group = (GroupEntity)this.groupRepository.findById((Object)groupId).orElseThrow(() -> new ApiException(404, "group not found"));
+        GroupEntity group = this.groupRepository.findById(groupId).orElseThrow(() -> new ApiException(404, "group not found"));
         if (!group.isActive) {
             throw new ApiException(404, "group not found");
         }
@@ -147,7 +149,7 @@ public class AccessService {
         this.getEffectiveMembershipRole(groupId, user.uid());
         ArrayList<ApiTypes.GroupMemberResponse> members = new ArrayList<ApiTypes.GroupMemberResponse>();
         for (GroupMembershipEntity membership : this.groupMembershipRepository.findByGroupIdAndIsActiveTrue(groupId)) {
-            UserProfileEntity memberProfile = this.userProfileRepository.findById((Object)membership.userId).orElse(null);
+            UserProfileEntity memberProfile = this.userProfileRepository.findById(membership.userId).orElse(null);
             members.add(new ApiTypes.GroupMemberResponse(membership.id, membership.userId, memberProfile == null ? membership.userId : this.firstNonBlank(new String[]{memberProfile.name, memberProfile.email, membership.userId}), memberProfile == null ? "" : memberProfile.email, this.normalizeMembershipRole(membership.role), membership.userId.equals(user.uid()), membership.isActive));
         }
         members.sort(
@@ -189,18 +191,18 @@ public class AccessService {
         group2.inviteCode = this.generateInviteCode();
         group2.createdBy = user.uid();
         group2.updatedAt = group2.createdAt = Instant.now();
-        this.groupRepository.save((Object)group2);
+        this.groupRepository.save(group2);
         GroupMembershipEntity membership = new GroupMembershipEntity();
         membership.id = this.membershipId(group2.id, user.uid());
         membership.groupId = group2.id;
         membership.userId = user.uid();
         membership.role = "owner";
         membership.updatedAt = membership.createdAt = Instant.now();
-        this.groupMembershipRepository.save((Object)membership);
-        UserProfileEntity profile = (UserProfileEntity)this.userProfileRepository.findById((Object)user.uid()).orElseThrow(() -> new ApiException(403, "User profile not found. Sync user first."));
+        this.groupMembershipRepository.save(membership);
+        UserProfileEntity profile = this.userProfileRepository.findById(user.uid()).orElseThrow(() -> new ApiException(403, "User profile not found. Sync user first."));
         profile.activeGroupId = group2.id;
         profile.updatedAt = Instant.now();
-        this.userProfileRepository.save((Object)profile);
+        this.userProfileRepository.save(profile);
         return this.buildSession(user.uid());
     }
 
@@ -216,7 +218,7 @@ public class AccessService {
         if (existingMembership.isPresent() && ((GroupMembershipEntity)existingMembership.get()).isActive) {
             profile.activeGroupId = group.id;
             profile.updatedAt = Instant.now();
-            this.userProfileRepository.save((Object)profile);
+            this.userProfileRepository.save(profile);
             return new ApiTypes.JoinGroupResultResponse("already_member", "already joined this group", this.buildSession(user.uid()));
         }
         Optional<GroupJoinRequestEntity> existingRequest = this.groupJoinRequestRepository.findByGroupIdAndUserId(group.id, user.uid());
@@ -239,7 +241,7 @@ public class AccessService {
         joinRequest.reviewedAt = null;
         joinRequest.reviewedBy = null;
         joinRequest.updatedAt = Instant.now();
-        this.groupJoinRequestRepository.save((Object)joinRequest);
+        this.groupJoinRequestRepository.save(joinRequest);
         return new ApiTypes.JoinGroupResultResponse("pending", "join request submitted", null);
     }
 
@@ -253,7 +255,7 @@ public class AccessService {
         UserProfileEntity profile = this.requireActiveProfile(user.uid());
         profile.activeGroupId = groupId;
         profile.updatedAt = Instant.now();
-        this.userProfileRepository.save((Object)profile);
+        this.userProfileRepository.save(profile);
         return this.buildSession(user.uid());
     }
 
@@ -265,7 +267,7 @@ public class AccessService {
         GroupEntity group = this.requireActiveGroupEntity(groupId);
         group.inviteCode = this.generateInviteCode();
         group.updatedAt = Instant.now();
-        this.groupRepository.save((Object)group);
+        this.groupRepository.save(group);
         return this.buildSession(user.uid());
     }
 
@@ -281,23 +283,23 @@ public class AccessService {
         group.deletedAt = Instant.now();
         group.deletedBy = user.uid();
         group.updatedAt = group.deletedAt;
-        this.groupRepository.save((Object)group);
+        this.groupRepository.save(group);
         List<GroupMembershipEntity> memberships = this.groupMembershipRepository.findByGroupIdAndIsActiveTrue(groupId);
         for (GroupMembershipEntity membership : memberships) {
             membership.isActive = false;
             membership.updatedAt = Instant.now();
-            this.groupMembershipRepository.save((Object)membership);
+            this.groupMembershipRepository.save(membership);
         }
         for (GroupJoinRequestEntity joinRequest : this.groupJoinRequestRepository.findByGroupId(groupId)) {
             joinRequest.status = "rejected";
             joinRequest.reviewedAt = Instant.now();
             joinRequest.reviewedBy = user.uid();
             joinRequest.updatedAt = Instant.now();
-            this.groupJoinRequestRepository.save((Object)joinRequest);
+            this.groupJoinRequestRepository.save(joinRequest);
         }
         List<String> affectedUsers = memberships.stream().map(m -> m.userId).distinct().toList();
         for (String affectedUserId : affectedUsers) {
-            this.userProfileRepository.findById((Object)affectedUserId).ifPresent(profile -> {
+            this.userProfileRepository.findById(affectedUserId).ifPresent(profile -> {
                 profile.activeGroupId = this.resolveFallbackGroupId(affectedUserId, groupId);
                 profile.updatedAt = Instant.now();
                 this.userProfileRepository.save(profile);
@@ -315,7 +317,7 @@ public class AccessService {
         if (requestId == null) {
             throw new ApiException(400, "join request is required");
         }
-        GroupJoinRequestEntity joinRequest = (GroupJoinRequestEntity)this.groupJoinRequestRepository.findById((Object)requestId).orElseThrow(() -> new ApiException(404, "join request not found"));
+        GroupJoinRequestEntity joinRequest = this.groupJoinRequestRepository.findById(requestId).orElseThrow(() -> new ApiException(404, "join request not found"));
         if (!groupId.equals(joinRequest.groupId)) {
             throw new ApiException(404, "join request not found");
         }
@@ -334,13 +336,13 @@ public class AccessService {
             membership.createdAt = Instant.now();
         }
         membership.updatedAt = Instant.now();
-        this.groupMembershipRepository.save((Object)membership);
+        this.groupMembershipRepository.save(membership);
         joinRequest.status = "approved";
         joinRequest.reviewedAt = Instant.now();
         joinRequest.reviewedBy = user.uid();
         joinRequest.updatedAt = Instant.now();
-        this.groupJoinRequestRepository.save((Object)joinRequest);
-        this.userProfileRepository.findById((Object)joinRequest.userId).ifPresent(target -> {
+        this.groupJoinRequestRepository.save(joinRequest);
+        this.userProfileRepository.findById(joinRequest.userId).ifPresent(target -> {
             if (target.activeGroupId == null || target.activeGroupId.isBlank()) {
                 target.activeGroupId = groupId;
                 target.updatedAt = Instant.now();
@@ -359,7 +361,7 @@ public class AccessService {
         if (requestId == null) {
             throw new ApiException(400, "join request is required");
         }
-        GroupJoinRequestEntity joinRequest = (GroupJoinRequestEntity)this.groupJoinRequestRepository.findById((Object)requestId).orElseThrow(() -> new ApiException(404, "join request not found"));
+        GroupJoinRequestEntity joinRequest = this.groupJoinRequestRepository.findById(requestId).orElseThrow(() -> new ApiException(404, "join request not found"));
         if (!groupId.equals(joinRequest.groupId)) {
             throw new ApiException(404, "join request not found");
         }
@@ -370,7 +372,7 @@ public class AccessService {
         joinRequest.reviewedAt = Instant.now();
         joinRequest.reviewedBy = user.uid();
         joinRequest.updatedAt = Instant.now();
-        this.groupJoinRequestRepository.save((Object)joinRequest);
+        this.groupJoinRequestRepository.save(joinRequest);
         return this.listGroupJoinRequests(user);
     }
 
@@ -398,25 +400,25 @@ public class AccessService {
         }
         membership.role = request.role();
         membership.updatedAt = Instant.now();
-        this.groupMembershipRepository.save((Object)membership);
+        this.groupMembershipRepository.save(membership);
         return this.listGroupMembers(user);
     }
 
     public ApiTypes.UserSessionResponse buildSession(String userId) {
-        UserProfileEntity profile = (UserProfileEntity)this.userProfileRepository.findById((Object)userId).orElseThrow(() -> new ApiException(403, "User profile not found. Sync user first."));
+        UserProfileEntity profile = this.userProfileRepository.findById(userId).orElseThrow(() -> new ApiException(403, "User profile not found. Sync user first."));
         List<ApiTypes.GroupMembershipResponse> memberships = this.buildMemberships(userId);
         ApiTypes.GroupMembershipResponse activeMembership = memberships.stream().filter(membership -> Objects.equals(membership.groupId(), profile.activeGroupId)).findFirst().orElse(null);
         return new ApiTypes.UserSessionResponse(userId, profile.email, this.firstNonBlank(new String[]{profile.name, profile.email, userId}), this.firstNonBlank(new String[]{profile.role, "staff"}), profile.isActive, profile.activeGroupId, activeMembership == null ? null : activeMembership.groupName(), activeMembership == null ? null : activeMembership.role(), memberships);
     }
 
     private List<ApiTypes.GroupMembershipResponse> buildMemberships(String userId) {
-        UserProfileEntity profile = (UserProfileEntity)this.userProfileRepository.findById((Object)userId).orElseThrow(() -> new ApiException(403, "User profile not found. Sync user first."));
+        UserProfileEntity profile = this.userProfileRepository.findById(userId).orElseThrow(() -> new ApiException(403, "User profile not found. Sync user first."));
         if (this.isMasterProfile(profile)) {
             return this.groupRepository.findAll().stream().filter(group -> group.isActive).sorted(Comparator.comparing(group -> group.name.toLowerCase(Locale.ROOT))).map(group -> new ApiTypes.GroupMembershipResponse("master_" + group.id, group.id, group.name, group.inviteCode, "owner", true)).toList();
         }
         ArrayList<ApiTypes.GroupMembershipResponse> memberships = new ArrayList<ApiTypes.GroupMembershipResponse>();
         for (GroupMembershipEntity membership : this.groupMembershipRepository.findByUserIdAndIsActiveTrue(userId)) {
-            GroupEntity group2 = this.groupRepository.findById((Object)membership.groupId).orElse(null);
+            GroupEntity group2 = this.groupRepository.findById(membership.groupId).orElse(null);
             if (group2 == null || !group2.isActive) continue;
             String role = this.normalizeMembershipRole(membership.role);
             memberships.add(new ApiTypes.GroupMembershipResponse(membership.id, group2.id, group2.name, "owner".equals(role) ? group2.inviteCode : null, role, membership.isActive));
@@ -427,7 +429,7 @@ public class AccessService {
     private String resolveFallbackGroupId(String userId, String excludingGroupId) {
         for (GroupMembershipEntity membership : this.groupMembershipRepository.findByUserIdAndIsActiveTrue(userId)) {
             GroupEntity group;
-            if (excludingGroupId.equals(membership.groupId) || (group = (GroupEntity)this.groupRepository.findById((Object)membership.groupId).orElse(null)) == null || !group.isActive) continue;
+            if (excludingGroupId.equals(membership.groupId) || (group = this.groupRepository.findById(membership.groupId).orElse(null)) == null || !group.isActive) continue;
             return group.id;
         }
         return null;
@@ -437,7 +439,7 @@ public class AccessService {
         String targetName = ApiUtils.normalizeKey((String)displayName);
         for (GroupMembershipEntity membership : this.groupMembershipRepository.findByGroupIdAndIsActiveTrue(groupId)) {
             if (excludeUserId != null && excludeUserId.equals(membership.userId)) continue;
-            this.userProfileRepository.findById((Object)membership.userId).ifPresent(profile -> {
+            this.userProfileRepository.findById(membership.userId).ifPresent(profile -> {
                 if (targetName.equals(ApiUtils.normalizeKey((String)profile.name))) {
                     throw new ApiException(409, "participant name already exists in this group");
                 }
@@ -447,7 +449,7 @@ public class AccessService {
 
     private String getEffectiveMembershipRole(String groupId, String userId) {
         GroupEntity group = this.requireActiveGroupEntity(groupId);
-        UserProfileEntity profile = (UserProfileEntity)this.userProfileRepository.findById((Object)userId).orElseThrow(() -> new ApiException(403, "User profile not found. Sync user first."));
+        UserProfileEntity profile = this.userProfileRepository.findById(userId).orElseThrow(() -> new ApiException(403, "User profile not found. Sync user first."));
         if (this.isMasterProfile(profile)) {
             return "owner";
         }

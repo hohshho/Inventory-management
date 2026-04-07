@@ -346,7 +346,7 @@ export function WorkspaceGroupsView() {
               <input
                 id="group-name-input"
                 className="input-shell"
-                placeholder="예: 순천향대학고 치과"
+                placeholder="예: 순천향대학교 치과"
                 {...createGroupForm.register("name", { required: true })}
               />
             </div>

@@ -47,6 +47,7 @@ export type LocationItem = {
 
 export type HistoryEntry = {
   id: string;
+  itemId: string;
   itemName: string;
   locationName: string;
   beforeQuantity: number;
@@ -62,11 +63,35 @@ export type HistoryEntry = {
 export type CreateItemInput = {
   name: string;
   barcode?: string;
+  categoryLevel1?: string;
+  categoryLevel2?: string;
+  categoryLevel3?: string;
+  size?: string;
+  customFields?: ItemCustomField[];
   defaultUnit: string;
   memo?: string;
   locationId: string;
   initialQuantity: number;
   lowStockThreshold?: number;
+};
+
+export type UpdateItemInput = {
+  itemId: string;
+  name: string;
+  barcode?: string;
+  categoryLevel1?: string;
+  categoryLevel2?: string;
+  categoryLevel3?: string;
+  size?: string;
+  customFields?: ItemCustomField[];
+  defaultUnit: string;
+  memo?: string;
+  lowStockThreshold: number;
+};
+
+export type ItemCustomField = {
+  label: string;
+  value: string;
 };
 
 export type CreateLocationInput = {
@@ -161,6 +186,10 @@ export type TogglePlannerTaskInput = {
   isDone: boolean;
 };
 
+export type DeletePlannerTaskInput = {
+  taskId: string;
+};
+
 export type UpsertPlannerMemoInput = {
   memoDate: string;
   note: string;
@@ -170,6 +199,11 @@ export type ItemRecord = {
   id: string;
   name: string;
   barcode: string | null;
+  categoryLevel1: string;
+  categoryLevel2: string;
+  categoryLevel3: string;
+  size: string;
+  customFields: ItemCustomField[];
   defaultUnit: string;
   memo: string;
   lowStockThreshold: number;
@@ -252,6 +286,11 @@ export type UserSession = {
   activeGroupName: string | null;
   activeGroupRole: MembershipRole | null;
   memberships: GroupMembership[];
+};
+
+export type SyncUserInput = {
+  name?: string;
+  email?: string;
 };
 
 async function createHeaders() {

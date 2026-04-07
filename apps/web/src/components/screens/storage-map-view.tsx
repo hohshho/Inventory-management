@@ -25,7 +25,7 @@ type LocationForm = {
 
 type CounterpartyForm = {
   name: string;
-  type: "supplier" | "customer";
+  type: "supplier";
   contact: string;
   notes: string;
 };
@@ -76,7 +76,7 @@ export function StorageMapView() {
 
     counterpartyForm.reset({
       name: editingCounterparty.name,
-      type: editingCounterparty.type,
+      type: "supplier",
       contact: editingCounterparty.contact,
       notes: editingCounterparty.notes,
     });
@@ -89,6 +89,7 @@ export function StorageMapView() {
       queryClient.invalidateQueries({ queryKey: ["zone-map"] }),
       queryClient.invalidateQueries({ queryKey: ["operations-digest"] }),
       queryClient.invalidateQueries({ queryKey: ["stock-rows"] }),
+      queryClient.invalidateQueries({ queryKey: ["ledger-feed"] }),
     ]);
   };
 
@@ -177,11 +178,6 @@ export function StorageMapView() {
     () => (counterpartyRows ?? []).filter((row) => row.type === "supplier"),
     [counterpartyRows],
   );
-  const customerRows = useMemo(
-    () => (counterpartyRows ?? []).filter((row) => row.type === "customer"),
-    [counterpartyRows],
-  );
-
   return (
     <div className="view-stack">
       {successText ? <div className="badge ok">{successText}</div> : null}
@@ -268,7 +264,7 @@ export function StorageMapView() {
         <article className="surface-card">
           <div className="panel-heading">
             <h2>{editingCounterparty ? "거래처 수정" : "거래처 추가"}</h2>
-            <span className="badge">공급처 / 고객</span>
+            <span className="badge">공급처</span>
           </div>
 
           <form
@@ -281,38 +277,27 @@ export function StorageMapView() {
                 await updateCounterpartyMutation.mutateAsync({
                   counterpartyId: editingCounterparty.id,
                   ...values,
+                  type: "supplier",
                 });
                 return;
               }
 
-              await createCounterpartyMutation.mutateAsync(values);
+              await createCounterpartyMutation.mutateAsync({
+                ...values,
+                type: "supplier",
+              });
             })}
           >
-            <div className="inline-fields">
-              <div className="input-cluster">
-                <label className="input-label" htmlFor="counterparty-name-input">
-                  거래처명
-                </label>
-                <input
-                  id="counterparty-name-input"
-                  className="input-shell"
-                  placeholder="예: 새벽유통"
-                  {...counterpartyForm.register("name", { required: true })}
-                />
-              </div>
-              <div className="input-cluster">
-                <label className="input-label" htmlFor="counterparty-type-input">
-                  구분
-                </label>
-                <select
-                  id="counterparty-type-input"
-                  className="input-shell"
-                  {...counterpartyForm.register("type")}
-                >
-                  <option value="supplier">공급처</option>
-                  <option value="customer">고객</option>
-                </select>
-              </div>
+            <div className="input-cluster">
+              <label className="input-label" htmlFor="counterparty-name-input">
+                거래처명
+              </label>
+              <input
+                id="counterparty-name-input"
+                className="input-shell"
+                placeholder="예: 새벽유통"
+                {...counterpartyForm.register("name", { required: true })}
+              />
             </div>
             <div className="input-cluster">
               <label className="input-label" htmlFor="counterparty-contact-input">
@@ -406,84 +391,39 @@ export function StorageMapView() {
         <article className="surface-card">
           <div className="panel-heading">
             <h2>등록된 거래처</h2>
-            <span className="badge">{counterpartyRows?.length ?? 0}개</span>
+            <span className="badge">{supplierRows.length}개</span>
           </div>
           {isCounterpartyLoading ? <div className="loading-state">거래처 목록을 불러오는 중입니다.</div> : null}
-          <div className="duo-grid">
-            <section className="surface-card">
-              <div className="panel-heading">
-                <h3>공급처</h3>
-                <span className="badge">{supplierRows.length}개</span>
+          <div className="view-stack">
+            {supplierRows.length === 0 ? <div className="empty-state">등록된 공급처가 없습니다.</div> : null}
+            {supplierRows.map((row) => (
+              <div className="info-row" key={row.id}>
+                <div>
+                  <strong>{row.name}</strong>
+                  <div className="subtle">{row.contact || "연락처 없음"}</div>
+                  <div className="subtle">{row.notes || "메모 없음"}</div>
+                </div>
+                <div className="workspace-inline-actions">
+                  <button
+                    className="button"
+                    onClick={() => setEditingCounterparty(row)}
+                    type="button"
+                  >
+                    수정
+                  </button>
+                  <button
+                    className="button workspace-danger-button"
+                    disabled={deleteCounterpartyMutation.isPending}
+                    onClick={() => {
+                      void deleteCounterpartyMutation.mutateAsync({ counterpartyId: row.id });
+                    }}
+                    type="button"
+                  >
+                    삭제
+                  </button>
+                </div>
               </div>
-              <div className="view-stack">
-                {supplierRows.length === 0 ? <div className="empty-state">등록된 공급처가 없습니다.</div> : null}
-                {supplierRows.map((row) => (
-                  <div className="info-row" key={row.id}>
-                    <div>
-                      <strong>{row.name}</strong>
-                      <div className="subtle">{row.contact || "연락처 없음"}</div>
-                      <div className="subtle">{row.notes || "메모 없음"}</div>
-                    </div>
-                    <div className="workspace-inline-actions">
-                      <button
-                        className="button"
-                        onClick={() => setEditingCounterparty(row)}
-                        type="button"
-                      >
-                        수정
-                      </button>
-                      <button
-                        className="button workspace-danger-button"
-                        disabled={deleteCounterpartyMutation.isPending}
-                        onClick={() => {
-                          void deleteCounterpartyMutation.mutateAsync({ counterpartyId: row.id });
-                        }}
-                        type="button"
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-            <section className="surface-card">
-              <div className="panel-heading">
-                <h3>고객</h3>
-                <span className="badge">{customerRows.length}개</span>
-              </div>
-              <div className="view-stack">
-                {customerRows.length === 0 ? <div className="empty-state">등록된 고객이 없습니다.</div> : null}
-                {customerRows.map((row) => (
-                  <div className="info-row" key={row.id}>
-                    <div>
-                      <strong>{row.name}</strong>
-                      <div className="subtle">{row.contact || "연락처 없음"}</div>
-                      <div className="subtle">{row.notes || "메모 없음"}</div>
-                    </div>
-                    <div className="workspace-inline-actions">
-                      <button
-                        className="button"
-                        onClick={() => setEditingCounterparty(row)}
-                        type="button"
-                      >
-                        수정
-                      </button>
-                      <button
-                        className="button workspace-danger-button"
-                        disabled={deleteCounterpartyMutation.isPending}
-                        onClick={() => {
-                          void deleteCounterpartyMutation.mutateAsync({ counterpartyId: row.id });
-                        }}
-                        type="button"
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+            ))}
           </div>
         </article>
       </section>

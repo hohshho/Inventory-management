@@ -6,6 +6,8 @@ public final class ApiTypes {
     private ApiTypes() {
     }
 
+    public record ItemCustomField(String label, String value) {}
+
     public record AdjustmentCreateResponse(
         String inventoryId,
         String adjustmentId,
@@ -60,10 +62,29 @@ public final class ApiTypes {
     public record CreateItemRequest(
         String name,
         String barcode,
+        String categoryLevel1,
+        String categoryLevel2,
+        String categoryLevel3,
+        String size,
+        List<ItemCustomField> customFields,
         String defaultUnit,
         String memo,
         String locationId,
         Integer initialQuantity,
+        Integer lowStockThreshold
+    ) {}
+
+    public record UpdateItemRequest(
+        String itemId,
+        String name,
+        String barcode,
+        String categoryLevel1,
+        String categoryLevel2,
+        String categoryLevel3,
+        String size,
+        List<ItemCustomField> customFields,
+        String defaultUnit,
+        String memo,
         Integer lowStockThreshold
     ) {}
 
@@ -84,6 +105,8 @@ public final class ApiTypes {
         String dueDate,
         String reminderAt
     ) {}
+
+    public record DeletePlannerTaskRequest(String taskId) {}
 
     public record DashboardSummaryResponse(
         int itemCount,
@@ -168,6 +191,11 @@ public final class ApiTypes {
         String id,
         String name,
         String barcode,
+        String categoryLevel1,
+        String categoryLevel2,
+        String categoryLevel3,
+        String size,
+        List<ItemCustomField> customFields,
         String defaultUnit,
         String memo,
         int lowStockThreshold,
@@ -247,7 +275,7 @@ public final class ApiTypes {
         String status
     ) {}
 
-    public record SyncUserRequest(String name) {}
+    public record SyncUserRequest(String name, String email) {}
 
     public record TogglePlannerTaskRequest(String taskId, Boolean isDone) {}
 

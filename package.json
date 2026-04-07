@@ -5,11 +5,11 @@
   "packageManager": "pnpm@10.0.0",
   "scripts": {
     "dev": "turbo run dev",
-    "dev:web": "turbo run dev --filter=@inventory-management/web --filter=@inventory-management/api",
-    "dev:api": "turbo run dev --filter=@inventory-management/api",
-    "build": "turbo run build",
+    "dev:web": "turbo run dev --filter=@inventory-management/web",
+    "dev:api": "mvn -f services/api-spring/pom.xml spring-boot:run",
+    "build": "turbo run build --filter=@inventory-management/web && mvn -f services/api-spring/pom.xml -DskipTests package",
     "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck --filter=@inventory-management/web && mvn -f services/api-spring/pom.xml -DskipTests compile"
   },
   "devDependencies": {
     "turbo": "^2.5.0"

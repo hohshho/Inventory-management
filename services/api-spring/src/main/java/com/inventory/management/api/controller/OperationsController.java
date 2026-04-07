@@ -138,6 +138,11 @@ public class OperationsController {
         return this.operationsService.createItem(ApiUtils.getAuthenticatedUser((HttpServletRequest)request), body);
     }
 
+    @PostMapping(value={"/items/update"})
+    public ApiTypes.IdResponse updateItem(HttpServletRequest request, @RequestBody ApiTypes.UpdateItemRequest body) {
+        return this.operationsService.updateItem(ApiUtils.getAuthenticatedUser((HttpServletRequest)request), body);
+    }
+
     @PostMapping(value={"/inventory-adjustments"})
     public ApiTypes.AdjustmentCreateResponse adjustInventory(HttpServletRequest request, @RequestBody ApiTypes.InventoryAdjustmentRequest body) {
         return this.operationsService.createInventoryAdjustment(ApiUtils.getAuthenticatedUser((HttpServletRequest)request), body);
@@ -161,6 +166,11 @@ public class OperationsController {
     @PostMapping(value={"/planner/tasks/toggle"})
     public ApiTypes.PlannerTaskToggleResponse togglePlannerTask(HttpServletRequest request, @RequestBody ApiTypes.TogglePlannerTaskRequest body) {
         return this.operationsService.togglePlannerTask(ApiUtils.getAuthenticatedUser((HttpServletRequest)request), body);
+    }
+
+    @PostMapping(value={"/planner/tasks/delete"})
+    public ApiTypes.IdResponse deletePlannerTask(HttpServletRequest request, @RequestBody ApiTypes.DeletePlannerTaskRequest body) {
+        return this.operationsService.deletePlannerTask(ApiUtils.getAuthenticatedUser((HttpServletRequest)request), body);
     }
 
     @PostMapping(value={"/planner/memos"})

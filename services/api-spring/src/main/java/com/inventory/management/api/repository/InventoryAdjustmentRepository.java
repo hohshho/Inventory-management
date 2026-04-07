@@ -1,43 +1,18 @@
 package com.inventory.management.api.repository;
 
-import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.Query;
 import com.inventory.management.api.model.InventoryAdjustmentEntity;
 import java.util.List;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-@Repository
-public class InventoryAdjustmentRepository extends FirestoreRepositorySupport<InventoryAdjustmentEntity> {
-    public InventoryAdjustmentRepository(Firestore firestore) {
-        super(firestore, InventoryAdjustmentEntity.class, "inventory_adjustments");
-    }
+public interface InventoryAdjustmentRepository extends JpaRepository<InventoryAdjustmentEntity, String> {
+    List<InventoryAdjustmentEntity> findByGroupIdOrderByCreatedAtDesc(String groupId, org.springframework.data.domain.Pageable pageable);
 
-    public InventoryAdjustmentEntity save(Object entity) {
-        return saveInternal(entity);
-    }
+    List<InventoryAdjustmentEntity> findTop10ByGroupIdAndItemIdOrderByCreatedAtDesc(String groupId, String itemId);
 
-    public List<InventoryAdjustmentEntity> findTop20ByGroupIdOrderByCreatedAtDesc(String groupId) {
-        Query query = baseQuery()
-            .whereEqualTo("groupId", groupId)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .limit(20);
-        return list(query);
-    }
+    List<InventoryAdjustmentEntity> findByGroupIdAndItemIdOrderByCreatedAtAsc(String groupId, String itemId);
 
-    public List<InventoryAdjustmentEntity> findTop10ByGroupIdAndItemIdOrderByCreatedAtDesc(String groupId, String itemId) {
-        Query query = baseQuery()
-            .whereEqualTo("groupId", groupId)
-            .whereEqualTo("itemId", itemId)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .limit(10);
-        return list(query);
-    }
-
-    public List<InventoryAdjustmentEntity> findByGroupIdAndItemIdOrderByCreatedAtAsc(String groupId, String itemId) {
-        Query query = baseQuery()
-            .whereEqualTo("groupId", groupId)
-            .whereEqualTo("itemId", itemId)
-            .orderBy("createdAt", Query.Direction.ASCENDING);
-        return list(query);
+    default List<InventoryAdjustmentEntity> findRecentByGroupIdOrderByCreatedAtDesc(String groupId, int limit) {
+        return findByGroupIdOrderByCreatedAtDesc(groupId, PageRequest.of(0, limit));
     }
 }

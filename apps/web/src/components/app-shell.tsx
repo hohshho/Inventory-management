@@ -119,30 +119,6 @@ const defaultLayoutPrefs: LayoutPrefs = {
   canvasWidth: "full",
 };
 
-const noticeFeed = [
-  {
-    id: "notice-1",
-    title: "부족 재고 확인 필요",
-    body: "냉장 1구역 일부 품목이 부족 상태로 감지되었습니다.",
-    time: "방금 전",
-    tone: "danger",
-  },
-  {
-    id: "notice-2",
-    title: "가입 요청 대기",
-    body: "새 멤버가 그룹 승인 대기 상태입니다.",
-    time: "8분 전",
-    tone: "warn",
-  },
-  {
-    id: "notice-3",
-    title: "발주 메모 저장 완료",
-    body: "오늘 발주 메모가 정상적으로 저장되었습니다.",
-    time: "20분 전",
-    tone: "ok",
-  },
-] as const;
-
 function formatTodayStamp() {
   return new Date().toLocaleDateString("en-GB", {
     day: "2-digit",
@@ -153,6 +129,14 @@ function formatTodayStamp() {
 
 function getInitialMark(name: string) {
   return name.trim().charAt(0).toUpperCase() || "U";
+}
+
+function getRoleLabel(role?: string | null) {
+  if (role === "owner") return "소유자";
+  if (role === "full") return "전체 권한";
+  if (role === "write") return "편집 가능";
+  if (role === "read") return "읽기 전용";
+  return "그룹 없음";
 }
 
 function RailIcon({ name }: { name: RailLink["icon"] }) {
@@ -395,10 +379,14 @@ function AlertRail({
   open,
   onClose,
   notices,
+  readNoticeIds,
+  onMarkRead,
 }: {
   open: boolean;
   onClose: () => void;
   notices: NoticeItem[];
+  readNoticeIds: string[];
+  onMarkRead: (noticeId: string) => void;
 }) {
   return (
     <>
@@ -426,6 +414,13 @@ function AlertRail({
                 <p>{notice.body}</p>
                 <small>{notice.time}</small>
               </div>
+              <button
+                className={`alert-read-button${readNoticeIds.includes(notice.id) ? " is-read" : ""}`}
+                onClick={() => onMarkRead(notice.id)}
+                type="button"
+              >
+                {readNoticeIds.includes(notice.id) ? "✓ 확인됨" : "✓ 확인"}
+              </button>
             </article>
           ))}
         </div>
@@ -451,6 +446,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [alertRailOpen, setAlertRailOpen] = useState(false);
   const [openHudMenu, setOpenHudMenu] = useState<HudMenuKind>(null);
   const [layoutPrefs, setLayoutPrefs] = useState<LayoutPrefs>(defaultLayoutPrefs);
+  const [readNoticeIds, setReadNoticeIds] = useState<string[]>([]);
   const { data: lowStockAlerts } = useLowStockAlerts(Boolean(profile?.activeGroupId));
   const { data: recentHistoryRows } = useLedgerFeed(Boolean(profile?.activeGroupId));
   const { data: pendingJoinRequests } = useQuery({
@@ -474,10 +470,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const mobileRailLinks =
     workspaceRailSections[0]?.items.filter((item) => mobileQuickdockHrefs.has(item.href)) ?? [];
   const workspaceLabel = profile?.activeGroupName ?? "그룹 선택 필요";
-  const roleLabel = profile?.activeGroupRole ?? "guest";
+  const roleLabel = getRoleLabel(profile?.activeGroupRole);
   const avatarLabel = useMemo(
-    () => profile?.name ?? user?.email ?? "User",
-    [profile?.name, user?.email],
+    () => profile?.name?.trim() || user?.displayName?.trim() || user?.email?.split("@")[0] || "사용자",
+    [profile?.name, user?.displayName, user?.email],
+  );
+  const noticeStorageKey = useMemo(
+    () => (user ? `im-read-notices:${user.uid}:${profile?.activeGroupId ?? "none"}` : null),
+    [profile?.activeGroupId, user],
   );
   const noticeFeed = useMemo<NoticeItem[]>(() => {
     const lowStockNotices = (lowStockAlerts ?? []).slice(0, 2).map((alertRow) => ({
@@ -498,7 +498,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
     const historyNotices = (recentHistoryRows ?? []).slice(0, 2).map((historyRow) => ({
       id: `history-${historyRow.id}`,
-      title: `${historyRow.itemName} 변경`,
+      title:
+        historyRow.changeType === "location_create"
+          ? `${historyRow.itemName} 위치 등록`
+          : historyRow.changeType === "counterparty_create"
+            ? `${historyRow.itemName} 거래처 등록`
+            : `${historyRow.itemName} 변경`,
       body: `${historyRow.locationName} · ${historyRow.reason}`,
       time: historyRow.createdAtLabel,
       tone: "ok" as const,
@@ -506,6 +511,27 @@ export function AppShell({ children }: { children: ReactNode }) {
 
     return [...lowStockNotices, ...joinRequestNotices, ...historyNotices].slice(0, 6);
   }, [lowStockAlerts, pendingJoinRequests, recentHistoryRows]);
+  const unreadNoticeCount = useMemo(
+    () => noticeFeed.filter((notice) => !readNoticeIds.includes(notice.id)).length,
+    [noticeFeed, readNoticeIds],
+  );
+
+  const markVisibleNoticesAsRead = () => {
+    setReadNoticeIds((current) => {
+      const nextIds = new Set(current);
+      noticeFeed.forEach((notice) => nextIds.add(notice.id));
+      return Array.from(nextIds);
+    });
+  };
+
+  const markSingleNoticeAsRead = (noticeId: string) => {
+    setReadNoticeIds((current) => {
+      if (current.includes(noticeId)) {
+        return current;
+      }
+      return [...current, noticeId];
+    });
+  };
 
   useEffect(() => {
     if (loading) {
@@ -548,6 +574,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!noticeStorageKey) {
+      setReadNoticeIds([]);
+      return;
+    }
+
+    try {
+      const savedIds = window.localStorage.getItem(noticeStorageKey);
+      setReadNoticeIds(savedIds ? (JSON.parse(savedIds) as string[]) : []);
+    } catch {
+      setReadNoticeIds([]);
+    }
+  }, [noticeStorageKey]);
+
+  useEffect(() => {
     document.documentElement.dataset.railTone = layoutPrefs.railTone;
     document.documentElement.dataset.railSize = layoutPrefs.compactRail ? "compact" : "default";
     document.documentElement.dataset.panelTone = layoutPrefs.panelTone;
@@ -557,10 +597,67 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [layoutPrefs]);
 
   useEffect(() => {
+    if (!noticeStorageKey) {
+      return;
+    }
+    window.localStorage.setItem(noticeStorageKey, JSON.stringify(readNoticeIds));
+  }, [noticeStorageKey, readNoticeIds]);
+
+  useEffect(() => {
+    const shouldLockScroll = mobileRailOpen || alertRailOpen || styleRailOpen;
+    const previousOverflow = document.body.style.overflow;
+    const previousTouchAction = document.body.style.touchAction;
+
+    if (shouldLockScroll) {
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.touchAction = previousTouchAction;
+    };
+  }, [alertRailOpen, mobileRailOpen, styleRailOpen]);
+
+  useEffect(() => {
+    setReadNoticeIds((current) => current.filter((id) => noticeFeed.some((notice) => notice.id === id)));
+  }, [noticeFeed]);
+
+  useEffect(() => {
     setMobileRailOpen(false);
+    setMobileQuickdockOpen(false);
     setOpenHudMenu(null);
     setAlertRailOpen(false);
+    setStyleRailOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 1101px)");
+    const legacyMediaQuery = mediaQuery as MediaQueryList & {
+      addListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+      removeListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+    };
+    const handleDesktopEnter = () => {
+      if (!mediaQuery.matches) {
+        return;
+      }
+
+      setMobileRailOpen(false);
+      setMobileQuickdockOpen(false);
+      setAlertRailOpen(false);
+      setStyleRailOpen(false);
+      setOpenHudMenu(null);
+    };
+
+    handleDesktopEnter();
+    if ("addEventListener" in mediaQuery) {
+      mediaQuery.addEventListener("change", handleDesktopEnter);
+      return () => mediaQuery.removeEventListener("change", handleDesktopEnter);
+    }
+
+    legacyMediaQuery.addListener?.(handleDesktopEnter);
+    return () => legacyMediaQuery.removeListener?.(handleDesktopEnter);
+  }, []);
 
   if (isLoginScreen) {
     return <>{children}</>;
@@ -571,7 +668,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className={`shell${mobileRailOpen ? " is-mobile-sidebar-open" : ""}`}>
+    <div
+      className={`shell${mobileRailOpen ? " is-mobile-sidebar-open" : ""}${alertRailOpen ? " is-alert-open" : ""}${styleRailOpen ? " is-style-rail-open" : ""}`}
+    >
       <aside className="workspace-rail">
         <div className="rail-brandbar">
           <Link href="/" className="brand-anchor">
@@ -615,6 +714,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                       key={item.href}
                       href={item.href}
                       className={`rail-link${isCurrent ? " is-current" : ""}`}
+                      title={layoutPrefs.compactRail ? item.label : undefined}
+                      data-tooltip={layoutPrefs.compactRail ? item.label : undefined}
+                      aria-label={item.label}
                     >
                       <span className="rail-link-icon">
                         <RailIcon name={item.icon} />
@@ -652,7 +754,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="hud-start">
               <button
                 className="utility-button mobile-menu-button"
-                onClick={() => setMobileRailOpen((prev) => !prev)}
+                onClick={() => {
+                  setOpenHudMenu(null);
+                  setAlertRailOpen(false);
+                  setStyleRailOpen(false);
+                  setMobileRailOpen((prev) => !prev);
+                }}
                 type="button"
               >
                 <UtilityIcon kind="menu" />
@@ -679,17 +786,23 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="hud-end">
               <button
                 className="utility-button has-badge"
-                onClick={() => setAlertRailOpen(true)}
+                onClick={() => {
+                  setMobileRailOpen(false);
+                  setStyleRailOpen(false);
+                  setOpenHudMenu(null);
+                  setAlertRailOpen(true);
+                }}
                 type="button"
               >
                 <UtilityIcon kind="bell" />
-                <span className="utility-badge danger">{noticeFeed.length}</span>
+                {unreadNoticeCount > 0 ? <span className="utility-badge danger">{unreadNoticeCount}</span> : null}
               </button>
 
               <div className="hud-anchor">
                 <button
                   className="profile-trigger"
                   onClick={() => setOpenHudMenu((prev) => (prev === "profile" ? null : "profile"))}
+                  aria-expanded={openHudMenu === "profile"}
                   type="button"
                 >
                   <div className="hud-profile">
@@ -699,7 +812,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                       <span>{roleLabel}</span>
                     </div>
                   </div>
-                  <UtilityIcon kind="chevron" />
+                  <span className="profile-trigger-icon">
+                    <UtilityIcon kind="chevron" />
+                  </span>
                 </button>
 
                 <HudTray open={openHudMenu === "profile"}>
@@ -714,10 +829,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <Link className="hud-tray-item" href="/groups" onClick={() => setOpenHudMenu(null)}>
                       <span>그룹 관리</span>
                       <small>{workspaceLabel}</small>
-                    </Link>
-                    <Link className="hud-tray-item" href="/login" onClick={() => setOpenHudMenu(null)}>
-                      <span>로그인 화면</span>
-                      <small>계정 전환</small>
                     </Link>
                     <button
                       className="hud-tray-item"
@@ -767,7 +878,16 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      <button className="style-fab" onClick={() => setStyleRailOpen(true)} type="button">
+      <button
+        className="style-fab"
+        onClick={() => {
+          setMobileRailOpen(false);
+          setAlertRailOpen(false);
+          setOpenHudMenu(null);
+          setStyleRailOpen(true);
+        }}
+        type="button"
+      >
         <UtilityIcon kind="settings" />
       </button>
 
@@ -778,7 +898,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         onChange={setLayoutPrefs}
       />
 
-      <AlertRail open={alertRailOpen} onClose={() => setAlertRailOpen(false)} notices={noticeFeed} />
+      <AlertRail
+        open={alertRailOpen}
+        onClose={() => setAlertRailOpen(false)}
+        notices={noticeFeed}
+        readNoticeIds={readNoticeIds}
+        onMarkRead={markSingleNoticeAsRead}
+      />
 
       <div className="ghost-shade" onClick={() => setMobileRailOpen(false)} />
 

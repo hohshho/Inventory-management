@@ -4,6 +4,22 @@ server:
 spring:
   application:
     name: inventory-management-api-spring
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres?sslmode=require}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres.cfzkwtlgadwgctrbnvsa}
+    password: ${SPRING_DATASOURCE_PASSWORD:Ttkdgns9299!}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  sql:
+    init:
+      mode: always
 
 app:
   cors-origin: ${CORS_ORIGIN:*}

@@ -6,6 +6,7 @@ import { useScheduleDigest } from "@/hooks/queries/use-schedule-digest";
 import {
   apiPost,
   type CreatePlannerTaskInput,
+  type DeletePlannerTaskInput,
   type PlannerCadence,
   type PlannerMemo,
   type TogglePlannerTaskInput,
@@ -37,11 +38,28 @@ function buildMonthDays(monthKey: string) {
   });
 }
 
+function getMonthStartWeekday(monthKey: string) {
+  const [year, monthValue] = monthKey.split("-").map(Number);
+  if (!year || !monthValue) return 0;
+
+  return new Date(year, monthValue - 1, 1).getDay();
+}
+
 function getCadenceText(cadence: PlannerCadence) {
   if (cadence === "daily") return "매일";
   if (cadence === "weekly") return "매주";
   return "매월";
 }
+
+function getWeekdayLabel(dateValue: string) {
+  const parsedDate = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "";
+  }
+  return parsedDate.toLocaleDateString("ko-KR", { weekday: "short" });
+}
+
+const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
 function findMemo(memoRows: PlannerMemo[] | undefined, dateKey: string) {
   return memoRows?.find((memoRow) => memoRow.memoDate === dateKey) ?? null;
@@ -104,6 +122,17 @@ export function ScheduleBoard({ title, subtitle, compact = false }: ScheduleBoar
     },
   });
 
+  const deleteTaskMutation = useMutation({
+    mutationFn: (payload: DeletePlannerTaskInput) => apiPost("/planner/tasks/delete", payload),
+    onSuccess: async () => {
+      await refreshPlannerBundle("작업을 삭제했습니다.");
+    },
+    onError: (error) => {
+      setSuccessToast("");
+      setErrorToast(error instanceof Error ? error.message : "작업 삭제에 실패했습니다.");
+    },
+  });
+
   const saveMemoMutation = useMutation({
     mutationFn: (payload: UpsertPlannerMemoInput) => apiPost("/planner/memos", payload),
     onSuccess: async () => {
@@ -122,6 +151,7 @@ export function ScheduleBoard({ title, subtitle, compact = false }: ScheduleBoar
     }) ?? [];
 
   const monthDays = buildMonthDays(activeMonthKey);
+  const monthStartWeekday = getMonthStartWeekday(activeMonthKey);
   const activeMemoRecord = findMemo(plannerBundleQuery.data?.memos, selectedDateKey);
 
   return (
@@ -151,19 +181,33 @@ export function ScheduleBoard({ title, subtitle, compact = false }: ScheduleBoar
           </div>
 
           <div className="schedule-calendar-grid">
+            {WEEKDAY_LABELS.map((weekday, index) => (
+              <div
+                className={`schedule-weekday-cell${index === 0 ? " is-sunday" : ""}${index === 6 ? " is-saturday" : ""}`}
+                key={weekday}
+              >
+                {weekday}
+              </div>
+            ))}
+            {Array.from({ length: monthStartWeekday }, (_, index) => (
+              <div className="schedule-day-cell schedule-day-cell-placeholder" key={`placeholder-${index}`} aria-hidden="true" />
+            ))}
             {monthDays.map((dateKey) => {
               const memoRecord = findMemo(plannerBundleQuery.data?.memos, dateKey);
               const isSelected = dateKey === selectedDateKey;
               const isToday = dateKey === getTodayKey();
+              const weekdayLabel = getWeekdayLabel(dateKey);
+              const weekdayIndex = new Date(`${dateKey}T00:00:00`).getDay();
 
               return (
                 <button
                   key={dateKey}
-                  className={`schedule-day-cell${isSelected ? " is-selected" : ""}${memoRecord ? " has-note" : ""}${isToday ? " is-today" : ""}`}
+                  className={`schedule-day-cell${isSelected ? " is-selected" : ""}${memoRecord ? " has-note" : ""}${isToday ? " is-today" : ""}${weekdayIndex === 0 ? " is-sunday" : ""}${weekdayIndex === 6 ? " is-saturday" : ""}`}
                   onClick={() => setSelectedDateKey(dateKey)}
                   type="button"
                 >
-                  <span>{Number(dateKey.slice(-2))}</span>
+                  <small>{weekdayLabel}</small>
+                  <strong>{Number(dateKey.slice(-2))}</strong>
                   {memoRecord ? <small>memo</small> : null}
                 </button>
               );
@@ -172,7 +216,9 @@ export function ScheduleBoard({ title, subtitle, compact = false }: ScheduleBoar
 
           <div className="schedule-note-editor">
             <div className="schedule-headline">
-              <h4>{selectedDateKey}</h4>
+              <h4>
+                {selectedDateKey} ({getWeekdayLabel(selectedDateKey)})
+              </h4>
               {activeMemoRecord ? <span className="badge ok">저장됨</span> : <span className="badge">메모 없음</span>}
             </div>
             {activeMemoRecord ? (
@@ -188,11 +234,11 @@ export function ScheduleBoard({ title, subtitle, compact = false }: ScheduleBoar
             />
             <button
               className="button secondary"
-              disabled={saveMemoMutation.isPending || !memoDraft.trim()}
+              disabled={saveMemoMutation.isPending}
               onClick={() => saveMemoMutation.mutate({ memoDate: selectedDateKey, note: memoDraft })}
               type="button"
             >
-              {saveMemoMutation.isPending ? "저장 중..." : "메모 저장"}
+              {saveMemoMutation.isPending ? "저장 중..." : memoDraft.trim() ? "메모 저장" : "메모 삭제"}
             </button>
           </div>
         </div>
@@ -293,9 +339,21 @@ export function ScheduleBoard({ title, subtitle, compact = false }: ScheduleBoar
                   <div className="schedule-task-copy">
                     <div className="schedule-task-topline">
                       <strong>{taskRow.title}</strong>
-                      <span className="badge">{getCadenceText(taskRow.cadence)}</span>
+                      <div className="workspace-inline-actions">
+                        <span className="badge">{getCadenceText(taskRow.cadence)}</span>
+                        <button
+                          className="button workspace-danger-button"
+                          disabled={deleteTaskMutation.isPending}
+                          onClick={() => deleteTaskMutation.mutate({ taskId: taskRow.id })}
+                          type="button"
+                        >
+                          삭제
+                        </button>
+                      </div>
                     </div>
-                    <div className="subtle">마감일 {taskRow.dueDate}</div>
+                    <div className="subtle">
+                      마감일 {taskRow.dueDate} ({getWeekdayLabel(taskRow.dueDate)})
+                    </div>
                     <div className="subtle">
                       {taskRow.reminderAtLabel ? `알림 예정 ${taskRow.reminderAtLabel}` : "알림 시간 미설정"}
                     </div>

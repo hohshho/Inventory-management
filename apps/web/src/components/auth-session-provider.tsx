@@ -11,7 +11,7 @@ import {
   type User,
 } from "firebase/auth";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import type { UserSession } from "@/lib/api";
+import type { SyncUserInput, UserSession } from "@/lib/api";
 import { auth, isFirebaseConfigured } from "@/lib/firebase/client";
 
 type AuthSessionContextValue = {
@@ -72,7 +72,7 @@ function translateFirebaseError(error: unknown) {
   return error;
 }
 
-async function syncUserProfile(currentUser: User, payload?: { name?: string }) {
+async function syncUserProfile(currentUser: User, payload?: SyncUserInput) {
   const token = await currentUser.getIdToken();
   const response = await fetch(`${apiBaseUrl}/users/sync`, {
     method: "POST",

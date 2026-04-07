@@ -1,19 +1,14 @@
 import type { Metadata } from "next";
-import { DM_Sans, Space_Grotesk } from "next/font/google";
+import type { CSSProperties, ReactNode } from "react";
 import Script from "next/script";
 import { AppShell } from "@/components/app-shell";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const bodyFont = DM_Sans({
-  variable: "--font-body",
-  subsets: ["latin"],
-});
-
-const displayFont = Space_Grotesk({
-  variable: "--font-display",
-  subsets: ["latin"],
-});
+const rootStyle = {
+  "--font-body": '"Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif',
+  "--font-display": '"Segoe UI Variable Display", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif',
+} as CSSProperties;
 
 export const metadata: Metadata = {
   title: "Inventory Management",
@@ -23,10 +18,10 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return (
-    <html lang="ko" className={`${bodyFont.variable} ${displayFont.variable}`}>
+    <html lang="ko" style={rootStyle}>
       <body>
         <Script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.5/kakao.min.js" strategy="afterInteractive" />
         <Providers>

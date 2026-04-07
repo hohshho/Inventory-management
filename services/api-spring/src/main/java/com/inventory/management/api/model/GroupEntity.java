@@ -24,7 +24,7 @@ public class GroupEntity {
     public String id;
     @Column(nullable=false)
     public String name;
-    @Column(nullable=false, unique=true)
+    @Column(nullable=false)
     public String nameKey;
     @Column(nullable=false, unique=true, length=32)
     public String inviteCode;
@@ -39,4 +39,3 @@ public class GroupEntity {
     public Instant deletedAt;
     public String deletedBy;
 }
-

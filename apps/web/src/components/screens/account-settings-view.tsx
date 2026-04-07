@@ -8,6 +8,7 @@ import { apiPost, type UserSession } from "@/lib/api";
 
 type ProfileForm = {
   name: string;
+  email: string;
 };
 
 export function AccountSettingsView() {
@@ -17,25 +18,27 @@ export function AccountSettingsView() {
   const { register, handleSubmit, reset } = useForm<ProfileForm>({
     defaultValues: {
       name: profile?.name ?? "",
+      email: profile?.email ?? "",
     },
   });
 
   useEffect(() => {
     reset({
       name: profile?.name ?? "",
+      email: profile?.email ?? "",
     });
-  }, [profile?.name, reset]);
+  }, [profile?.email, profile?.name, reset]);
 
   const updateProfileMutation = useMutation({
     mutationFn: (payload: ProfileForm) => apiPost<UserSession>("/users/sync", payload),
     onSuccess: async () => {
       await refreshProfile();
-      setSuccessText("이름을 저장했습니다.");
+      setSuccessText("개인정보를 저장했습니다.");
       setErrorText("");
     },
     onError: (error) => {
       setSuccessText("");
-      setErrorText(error instanceof Error ? error.message : "이름 저장에 실패했습니다.");
+      setErrorText(error instanceof Error ? error.message : "개인정보 저장에 실패했습니다.");
     },
   });
 
@@ -44,7 +47,7 @@ export function AccountSettingsView() {
       <section className="surface-card">
         <div className="panel-heading">
           <h2>개인정보 수정</h2>
-          <span className="badge">이름 설정</span>
+          <span className="badge">이름 / 이메일</span>
         </div>
 
         <form
@@ -54,6 +57,7 @@ export function AccountSettingsView() {
             setErrorText("");
             await updateProfileMutation.mutateAsync({
               name: values.name.trim(),
+              email: values.email.trim(),
             });
           })}
         >
@@ -69,6 +73,18 @@ export function AccountSettingsView() {
             />
           </div>
 
+          <div className="input-cluster">
+            <label className="input-label" htmlFor="profile-email-input">
+              이메일
+            </label>
+            <input
+              id="profile-email-input"
+              className="input-shell"
+              placeholder="연락용 이메일을 입력하세요"
+              {...register("email", { required: true })}
+            />
+          </div>
+
           {successText ? <div className="badge ok">{successText}</div> : null}
           {errorText ? <div className="badge danger">{errorText}</div> : null}
 
@@ -81,6 +97,7 @@ export function AccountSettingsView() {
               onClick={() =>
                 reset({
                   name: profile?.name ?? "",
+                  email: profile?.email ?? "",
                 })
               }
               type="button"

@@ -2,6 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { MobileBarcodeInput } from "@/components/mobile-barcode-input";
 import { apiPost, type BarcodeResolutionResult } from "@/lib/api";
 
 const sampleBarcodeSet = ["8800000000001", "8800000000002", "9999999999999"];
@@ -65,15 +66,11 @@ export function BarcodeDeskView() {
 
             <div className="view-stack">
               <div className="input-cluster">
-                <label className="input-label" htmlFor="barcode-field">
-                  바코드
-                </label>
-                <input
-                  className="input-shell"
-                  id="barcode-field"
-                  placeholder="바코드 숫자를 입력하세요"
+                <MobileBarcodeInput
+                  inputId="barcode-field"
+                  label="바코드"
                   value={barcodeDraft}
-                  onChange={(event) => setBarcodeDraft(event.target.value)}
+                  onChange={setBarcodeDraft}
                 />
               </div>
 
