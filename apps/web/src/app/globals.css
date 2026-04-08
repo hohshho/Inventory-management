@@ -2303,6 +2303,18 @@ html[data-rail-tone="dark"][data-panel-tone="soft"] .schedule-board {
   flex-wrap: wrap;
 }
 
+.banner-actions {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.banner-mode-select {
+  min-width: 220px;
+}
+
 .info-row {
   display: flex;
   align-items: start;

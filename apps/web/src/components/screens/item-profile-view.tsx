@@ -14,6 +14,8 @@ type ItemProfileViewProps = {
   itemId: string;
 };
 
+type DetailSectionMode = "operations" | "item";
+
 function getHistoryTone(changeType: string) {
   if (changeType === "decrease" || changeType === "transfer_out") return "danger";
   if (changeType === "manual_edit") return "warn";
@@ -42,6 +44,7 @@ export function ItemProfileView({ itemId }: ItemProfileViewProps) {
     queryKey: ["item-records"],
     queryFn: () => apiGet<ItemRecord[]>("/items"),
   });
+  const [detailSectionMode, setDetailSectionMode] = useState<DetailSectionMode>("operations");
   const [successText, setSuccessText] = useState("");
   const [errorText, setErrorText] = useState("");
   const [snapshotAt, setSnapshotAt] = useState(() => new Date().toISOString().slice(0, 16));
@@ -198,238 +201,258 @@ export function ItemProfileView({ itemId }: ItemProfileViewProps) {
               {itemBundle.item.defaultUnit}
             </div>
           </div>
-          <Link className="button secondary" href="/inventory">
-            재고 목록으로
-          </Link>
+          <div className="banner-actions">
+            <div className="input-cluster banner-mode-select">
+              <label className="input-label" htmlFor="item-profile-section-mode">
+                상세 화면
+              </label>
+              <select
+                id="item-profile-section-mode"
+                className="input-shell"
+                value={detailSectionMode}
+                onChange={(event) => setDetailSectionMode(event.target.value as DetailSectionMode)}
+              >
+                <option value="operations">입출고 / 위치 이동</option>
+                <option value="item">품목 정보 수정</option>
+              </select>
+            </div>
+            <Link className="button secondary" href="/inventory">
+              재고 목록으로
+            </Link>
+          </div>
         </div>
       </section>
 
       {successText ? <div className="badge ok">{successText}</div> : null}
       {errorText ? <div className="badge danger">{errorText}</div> : null}
 
-      <section className="duo-grid">
-        <article className="surface-card">
-          <div className="panel-heading">
-            <h2>품목 정보 수정</h2>
-            <span className="badge">{itemBundle.inventories.length}개 위치 연결</span>
-          </div>
-          <form
-            className="view-stack"
-            onSubmit={handleItemSubmit(async (values) => {
-              setSuccessText("");
-              setErrorText("");
-              await updateItemMutation.mutateAsync({
-                ...values,
-                itemId,
-                barcode: values.barcode?.trim() || undefined,
-                categoryLevel1: values.categoryLevel1?.trim() || "",
-                categoryLevel2: values.categoryLevel2?.trim() || "",
-                categoryLevel3: values.categoryLevel3?.trim() || "",
-                size: values.size?.trim() || "",
-                customFields:
-                  values.customFields?.filter((field) => field.label?.trim() && field.value?.trim()) ?? [],
-                memo: values.memo ?? "",
-              });
-            })}
-          >
-            <div className="input-cluster">
-              <label className="input-label">품목명</label>
-              <input className="input-shell" {...registerItem("name", { required: true })} />
+      {detailSectionMode === "item" ? (
+        <section>
+          <article className="surface-card">
+            <div className="panel-heading">
+              <h2>품목 정보 수정</h2>
+              <span className="badge">{itemBundle.inventories.length}개 위치 연결</span>
             </div>
-            <div className="inline-fields">
-              <MobileBarcodeInput
-                inputId="item-profile-barcode-input"
-                label="바코드"
-                value={itemBarcodeValue}
-                onChange={(nextValue) => setItemValue("barcode", nextValue, { shouldDirty: true })}
-              />
-              <div className="input-cluster">
-                <label className="input-label">사이즈</label>
-                <input className="input-shell" {...registerItem("size")} />
-              </div>
-            </div>
-            <div className="input-cluster">
-              <div className="panel-heading">
-                <h3>분류 체계</h3>
-                <span className="badge">최대 3단계</span>
-              </div>
-              <div className="inline-fields">
-                <div className="input-cluster">
-                  <label className="input-label">1차 분류</label>
-                  <input className="input-shell" list="item-profile-category-level1-list" {...registerItem("categoryLevel1")} />
-                  <datalist id="item-profile-category-level1-list">
-                    {categoryLevel1Options.map((option) => (
-                      <option key={option} value={option} />
-                    ))}
-                  </datalist>
-                </div>
-                {hasCategoryLevel1 ? (
-                  <div className="input-cluster">
-                    <label className="input-label">2차 분류</label>
-                    <input className="input-shell" list="item-profile-category-level2-list" {...registerItem("categoryLevel2")} />
-                    <datalist id="item-profile-category-level2-list">
-                      {categoryLevel2Options.map((option) => (
-                        <option key={option} value={option} />
-                      ))}
-                    </datalist>
-                  </div>
-                ) : null}
-                {hasCategoryLevel2 ? (
-                  <div className="input-cluster">
-                    <label className="input-label">3차 분류</label>
-                    <input className="input-shell" list="item-profile-category-level3-list" {...registerItem("categoryLevel3")} />
-                    <datalist id="item-profile-category-level3-list">
-                      {categoryLevel3Options.map((option) => (
-                        <option key={option} value={option} />
-                      ))}
-                    </datalist>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-            <div className="input-cluster">
-              <div className="panel-heading">
-                <h3>추가 속성</h3>
-                <button className="button" onClick={() => append({ label: "", value: "" })} type="button">
-                  항목 추가
-                </button>
-              </div>
-              <div className="view-stack">
-                {customFieldRows.length === 0 ? <div className="subtle">필요한 속성을 자유롭게 추가할 수 있습니다.</div> : null}
-                {customFieldRows.map((field, index) => (
-                  <div className="inline-fields" key={field.id}>
-                    <input className="input-shell" placeholder="항목명" {...registerItem(`customFields.${index}.label`)} />
-                    <input className="input-shell" placeholder="값" {...registerItem(`customFields.${index}.value`)} />
-                    <button className="button workspace-danger-button" onClick={() => remove(index)} type="button">
-                      삭제
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="inline-fields">
-              <div className="input-cluster">
-                <label className="input-label">기본 단위</label>
-                <input className="input-shell" {...registerItem("defaultUnit", { required: true })} />
-              </div>
-            </div>
-            <div className="input-cluster">
-              <label className="input-label">부족 기준</label>
-              <input
-                className="input-shell"
-                type="number"
-                min={1}
-                {...registerItem("lowStockThreshold", { required: true, valueAsNumber: true })}
-              />
-            </div>
-            <div className="input-cluster">
-              <label className="input-label">메모</label>
-              <textarea className="input-area" {...registerItem("memo")} />
-            </div>
-            <div className="action-row">
-              <button className="button primary" disabled={updateItemMutation.isPending} type="submit">
-                {updateItemMutation.isPending ? "수정 중..." : "품목 정보 저장"}
-              </button>
-            </div>
-          </form>
-        </article>
-
-        <article className="surface-card">
-          <div className="panel-heading">
-            <h2>입출고 / 위치 이동</h2>
-            <span className="badge warn">거래처 연동</span>
-          </div>
-
-          {itemBundle.inventories.length === 0 ? (
-            <div className="loading-state">연결된 재고가 없어 변경을 진행할 수 없습니다.</div>
-          ) : (
             <form
               className="view-stack"
-              onSubmit={handleSubmit(async (values) => {
+              onSubmit={handleItemSubmit(async (values) => {
                 setSuccessText("");
                 setErrorText("");
-                await adjustStockMutation.mutateAsync(values);
+                await updateItemMutation.mutateAsync({
+                  ...values,
+                  itemId,
+                  barcode: values.barcode?.trim() || undefined,
+                  categoryLevel1: values.categoryLevel1?.trim() || "",
+                  categoryLevel2: values.categoryLevel2?.trim() || "",
+                  categoryLevel3: values.categoryLevel3?.trim() || "",
+                  size: values.size?.trim() || "",
+                  customFields:
+                    values.customFields?.filter((field) => field.label?.trim() && field.value?.trim()) ?? [],
+                  memo: values.memo ?? "",
+                });
               })}
             >
               <div className="input-cluster">
-                <label className="input-label">대상 재고</label>
-                <select
-                  className="input-shell"
-                  {...register("inventoryId", { required: true })}
-                  defaultValue={defaultInventoryId}
-                >
-                  {itemBundle.inventories.map((inventoryRow) => (
-                    <option key={inventoryRow.id} value={inventoryRow.id}>
-                      {inventoryRow.locationName} / 현재 {inventoryRow.quantity}
-                      {inventoryRow.unit}
-                    </option>
-                  ))}
-                </select>
+                <label className="input-label">품목명</label>
+                <input className="input-shell" {...registerItem("name", { required: true })} />
               </div>
-
+              <div className="inline-fields">
+                <MobileBarcodeInput
+                  inputId="item-profile-barcode-input"
+                  label="바코드"
+                  value={itemBarcodeValue}
+                  onChange={(nextValue) => setItemValue("barcode", nextValue, { shouldDirty: true })}
+                />
+                <div className="input-cluster">
+                  <label className="input-label">사이즈</label>
+                  <input className="input-shell" {...registerItem("size")} />
+                </div>
+              </div>
+              <div className="input-cluster">
+                <div className="panel-heading">
+                  <h3>분류 체계</h3>
+                  <span className="badge">최대 3단계</span>
+                </div>
+                <div className="inline-fields">
+                  <div className="input-cluster">
+                    <label className="input-label">1차 분류</label>
+                    <input className="input-shell" list="item-profile-category-level1-list" {...registerItem("categoryLevel1")} />
+                    <datalist id="item-profile-category-level1-list">
+                      {categoryLevel1Options.map((option) => (
+                        <option key={option} value={option} />
+                      ))}
+                    </datalist>
+                  </div>
+                  {hasCategoryLevel1 ? (
+                    <div className="input-cluster">
+                      <label className="input-label">2차 분류</label>
+                      <input className="input-shell" list="item-profile-category-level2-list" {...registerItem("categoryLevel2")} />
+                      <datalist id="item-profile-category-level2-list">
+                        {categoryLevel2Options.map((option) => (
+                          <option key={option} value={option} />
+                        ))}
+                      </datalist>
+                    </div>
+                  ) : null}
+                  {hasCategoryLevel2 ? (
+                    <div className="input-cluster">
+                      <label className="input-label">3차 분류</label>
+                      <input className="input-shell" list="item-profile-category-level3-list" {...registerItem("categoryLevel3")} />
+                      <datalist id="item-profile-category-level3-list">
+                        {categoryLevel3Options.map((option) => (
+                          <option key={option} value={option} />
+                        ))}
+                      </datalist>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              <div className="input-cluster">
+                <div className="panel-heading">
+                  <h3>추가 속성</h3>
+                  <button className="button" onClick={() => append({ label: "", value: "" })} type="button">
+                    항목 추가
+                  </button>
+                </div>
+                <div className="view-stack">
+                  {customFieldRows.length === 0 ? <div className="subtle">필요한 속성을 자유롭게 추가할 수 있습니다.</div> : null}
+                  {customFieldRows.map((field, index) => (
+                    <div className="inline-fields" key={field.id}>
+                      <input className="input-shell" placeholder="항목명" {...registerItem(`customFields.${index}.label`)} />
+                      <input className="input-shell" placeholder="값" {...registerItem(`customFields.${index}.value`)} />
+                      <button className="button workspace-danger-button" onClick={() => remove(index)} type="button">
+                        삭제
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
               <div className="inline-fields">
                 <div className="input-cluster">
-                  <label className="input-label">처리 유형</label>
-                  <select className="input-shell" {...register("changeType", { required: true })}>
-                    <option value="increase">입고</option>
-                    <option value="decrease">출고</option>
-                    <option value="manual_edit">직접 수정</option>
-                    <option value="transfer">위치 이동</option>
-                  </select>
-                </div>
-                <div className="input-cluster">
-                  <label className="input-label">수량</label>
-                  <input
-                    className="input-shell"
-                    type="number"
-                    min={0}
-                    {...register("quantity", { required: true, valueAsNumber: true })}
-                  />
+                  <label className="input-label">기본 단위</label>
+                  <input className="input-shell" {...registerItem("defaultUnit", { required: true })} />
                 </div>
               </div>
-
-              {isCounterpartyRequired ? (
-                <div className="input-cluster">
-                  <label className="input-label">거래처</label>
-                  <select className="input-shell" {...register("counterpartyId")}>
-                    <option value="">거래처 선택</option>
-                    {filteredCounterparties.map((counterparty) => (
-                      <option key={counterparty.id} value={counterparty.id}>
-                        {counterparty.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
-
-              {isTransfer ? (
-                <div className="input-cluster">
-                  <label className="input-label">이동할 위치</label>
-                  <select className="input-shell" {...register("targetLocationId")}>
-                    <option value="">위치 선택</option>
-                    {locationRows?.map((locationRow) => (
-                      <option key={locationRow.id} value={locationRow.id}>
-                        {locationRow.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
-
               <div className="input-cluster">
-                <label className="input-label">사유</label>
-                <textarea className="input-area" {...register("reason", { required: true })} />
+                <label className="input-label">부족 기준</label>
+                <input
+                  className="input-shell"
+                  type="number"
+                  min={1}
+                  {...registerItem("lowStockThreshold", { required: true, valueAsNumber: true })}
+                />
               </div>
-
+              <div className="input-cluster">
+                <label className="input-label">메모</label>
+                <textarea className="input-area" {...registerItem("memo")} />
+              </div>
               <div className="action-row">
-                <button className="button primary" disabled={adjustStockMutation.isPending} type="submit">
-                  {adjustStockMutation.isPending ? "저장 중..." : "변경 저장"}
+                <button className="button primary" disabled={updateItemMutation.isPending} type="submit">
+                  {updateItemMutation.isPending ? "수정 중..." : "품목 정보 저장"}
                 </button>
               </div>
             </form>
-          )}
-        </article>
-      </section>
+          </article>
+        </section>
+      ) : (
+        <section>
+          <article className="surface-card">
+            <div className="panel-heading">
+              <h2>입출고 / 위치 이동</h2>
+              <span className="badge warn">거래처 연동</span>
+            </div>
+
+            {itemBundle.inventories.length === 0 ? (
+              <div className="loading-state">연결된 재고가 없어 변경을 진행할 수 없습니다.</div>
+            ) : (
+              <form
+                className="view-stack"
+                onSubmit={handleSubmit(async (values) => {
+                  setSuccessText("");
+                  setErrorText("");
+                  await adjustStockMutation.mutateAsync(values);
+                })}
+              >
+                <div className="input-cluster">
+                  <label className="input-label">대상 재고</label>
+                  <select
+                    className="input-shell"
+                    {...register("inventoryId", { required: true })}
+                    defaultValue={defaultInventoryId}
+                  >
+                    {itemBundle.inventories.map((inventoryRow) => (
+                      <option key={inventoryRow.id} value={inventoryRow.id}>
+                        {inventoryRow.locationName} / 현재 {inventoryRow.quantity}
+                        {inventoryRow.unit}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="inline-fields">
+                  <div className="input-cluster">
+                    <label className="input-label">처리 유형</label>
+                    <select className="input-shell" {...register("changeType", { required: true })}>
+                      <option value="increase">입고</option>
+                      <option value="decrease">출고</option>
+                      <option value="manual_edit">직접 수정</option>
+                      <option value="transfer">위치 이동</option>
+                    </select>
+                  </div>
+                  <div className="input-cluster">
+                    <label className="input-label">수량</label>
+                    <input
+                      className="input-shell"
+                      type="number"
+                      min={0}
+                      {...register("quantity", { required: true, valueAsNumber: true })}
+                    />
+                  </div>
+                </div>
+
+                {isCounterpartyRequired ? (
+                  <div className="input-cluster">
+                    <label className="input-label">거래처</label>
+                    <select className="input-shell" {...register("counterpartyId")}>
+                      <option value="">거래처 선택</option>
+                      {filteredCounterparties.map((counterparty) => (
+                        <option key={counterparty.id} value={counterparty.id}>
+                          {counterparty.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
+
+                {isTransfer ? (
+                  <div className="input-cluster">
+                    <label className="input-label">이동할 위치</label>
+                    <select className="input-shell" {...register("targetLocationId")}>
+                      <option value="">위치 선택</option>
+                      {locationRows?.map((locationRow) => (
+                        <option key={locationRow.id} value={locationRow.id}>
+                          {locationRow.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
+
+                <div className="input-cluster">
+                  <label className="input-label">사유</label>
+                  <textarea className="input-area" {...register("reason", { required: true })} />
+                </div>
+
+                <div className="action-row">
+                  <button className="button primary" disabled={adjustStockMutation.isPending} type="submit">
+                    {adjustStockMutation.isPending ? "저장 중..." : "변경 저장"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </article>
+        </section>
+      )}
 
       <section className="surface-card">
         <div className="panel-heading">
@@ -511,9 +534,9 @@ export function ItemProfileView({ itemId }: ItemProfileViewProps) {
           {itemBundle.adjustments.map((adjustmentRow) => (
             <div className="info-row" key={adjustmentRow.id}>
               <div>
-                <strong>{adjustmentRow.locationName}</strong>
+                <strong>대상 재고: {adjustmentRow.locationName}</strong>
                 <div className="subtle">
-                  {adjustmentRow.createdByName} / {adjustmentRow.reason}
+                  변경자: {adjustmentRow.createdByName} / 사유: {adjustmentRow.reason}
                 </div>
                 {adjustmentRow.counterpartyName ? (
                   <div className="subtle">거래처: {adjustmentRow.counterpartyName}</div>
