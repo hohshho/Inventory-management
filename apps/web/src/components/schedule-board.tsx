@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useScheduleDigest } from "@/hooks/queries/use-schedule-digest";
+import { useAutoClearingText } from "@/hooks/use-auto-clearing-text";
+import { useToastFeedback } from "@/hooks/use-toast-feedback";
 import {
   apiPost,
   type CreatePlannerTaskInput,
@@ -77,6 +79,10 @@ export function ScheduleBoard({ title, subtitle, compact = false }: ScheduleBoar
   const [memoDraft, setMemoDraft] = useState("");
   const [successToast, setSuccessToast] = useState("");
   const [errorToast, setErrorToast] = useState("");
+
+  useAutoClearingText(successToast, setSuccessToast);
+  useAutoClearingText(errorToast, setErrorToast);
+  useToastFeedback(successToast, errorToast);
 
   const plannerBundleQuery = useScheduleDigest(activeMonthKey);
 
@@ -158,7 +164,6 @@ export function ScheduleBoard({ title, subtitle, compact = false }: ScheduleBoar
     <section className={`surface-card schedule-board${compact ? " is-compact" : ""}`}>
       <div className="surface-head">
         <div>
-          <span className="section-pill">Planner</span>
           <h3>{title}</h3>
           <p>{subtitle}</p>
         </div>
@@ -169,9 +174,6 @@ export function ScheduleBoard({ title, subtitle, compact = false }: ScheduleBoar
           onChange={(event) => setActiveMonthKey(event.target.value)}
         />
       </div>
-
-      {successToast ? <div className="badge ok">{successToast}</div> : null}
-      {errorToast ? <div className="badge danger">{errorToast}</div> : null}
 
       <div className="schedule-grid">
         <div className="schedule-calendar-card">
@@ -208,7 +210,6 @@ export function ScheduleBoard({ title, subtitle, compact = false }: ScheduleBoar
                 >
                   <small>{weekdayLabel}</small>
                   <strong>{Number(dateKey.slice(-2))}</strong>
-                  {memoRecord ? <small>memo</small> : null}
                 </button>
               );
             })}
@@ -223,12 +224,12 @@ export function ScheduleBoard({ title, subtitle, compact = false }: ScheduleBoar
             </div>
             {activeMemoRecord ? (
               <div className="subtle">
-                {activeMemoRecord.createdByName} · {activeMemoRecord.updatedAtLabel}
+                {activeMemoRecord.createdByName} / {activeMemoRecord.updatedAtLabel}
               </div>
             ) : null}
             <textarea
               className="input-area"
-              placeholder="선택 날짜의 메모를 입력하세요"
+              placeholder="선택한 날짜의 메모를 입력해 주세요."
               value={memoDraft}
               onChange={(event) => setMemoDraft(event.target.value)}
             />
@@ -245,7 +246,7 @@ export function ScheduleBoard({ title, subtitle, compact = false }: ScheduleBoar
 
         <div className="schedule-task-card">
           <div className="schedule-headline">
-            <h4>작업 리스트</h4>
+            <h4>작업 목록</h4>
             <span className="badge">{visibleTasks.length}개</span>
           </div>
 
@@ -271,7 +272,7 @@ export function ScheduleBoard({ title, subtitle, compact = false }: ScheduleBoar
           <div className="schedule-task-form">
             <input
               className="input-shell"
-              placeholder="예: 냉장 재고 확인"
+              placeholder="예: 냉장고 재고 확인"
               value={taskTitleDraft}
               onChange={(event) => setTaskTitleDraft(event.target.value)}
             />

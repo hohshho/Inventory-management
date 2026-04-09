@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useCounterpartyList } from "@/hooks/queries/use-counterparty-list";
+import { useAutoClearingText } from "@/hooks/use-auto-clearing-text";
+import { useToastFeedback } from "@/hooks/use-toast-feedback";
 import { useZoneMap } from "@/hooks/queries/use-zone-map";
 import {
   apiPost,
@@ -38,6 +40,10 @@ export function StorageMapView() {
   const [errorText, setErrorText] = useState("");
   const [editingLocation, setEditingLocation] = useState<LocationItem | null>(null);
   const [editingCounterparty, setEditingCounterparty] = useState<Counterparty | null>(null);
+
+  useAutoClearingText(successText, setSuccessText);
+  useAutoClearingText(errorText, setErrorText);
+  useToastFeedback(successText, errorText);
 
   const locationForm = useForm<LocationForm>({
     defaultValues: {
@@ -180,9 +186,6 @@ export function StorageMapView() {
   );
   return (
     <div className="view-stack">
-      {successText ? <div className="badge ok">{successText}</div> : null}
-      {errorText ? <div className="badge danger">{errorText}</div> : null}
-
       <section className="duo-grid">
         <article className="surface-card">
           <div className="panel-heading">
@@ -350,7 +353,7 @@ export function StorageMapView() {
             <span className="badge">{locationRows?.length ?? 0}개</span>
           </div>
           {isLocationLoading ? <div className="loading-state">위치 목록을 불러오는 중입니다.</div> : null}
-          <div className="tile-grid">
+          <div className="tile-grid storage-section-grid">
             {locationRows?.map((locationRow) => (
               <article className="surface-card" key={locationRow.id}>
                 <div className="panel-heading">
@@ -394,7 +397,7 @@ export function StorageMapView() {
             <span className="badge">{supplierRows.length}개</span>
           </div>
           {isCounterpartyLoading ? <div className="loading-state">거래처 목록을 불러오는 중입니다.</div> : null}
-          <div className="view-stack">
+          <div className="view-stack storage-section-stack">
             {supplierRows.length === 0 ? <div className="empty-state">등록된 공급처가 없습니다.</div> : null}
             {supplierRows.map((row) => (
               <div className="info-row" key={row.id}>

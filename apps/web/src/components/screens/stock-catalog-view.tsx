@@ -307,7 +307,6 @@ export function StockCatalogView() {
         <aside className="surface-card stock-filter-card">
           <div className="surface-head">
             <div>
-              <span className="section-pill">Filters</span>
               <h3>재고 필터</h3>
               <p>위치와 상태 기준으로 현재 재고 목록을 빠르게 좁혀 볼 수 있습니다.</p>
             </div>
@@ -334,13 +333,19 @@ export function StockCatalogView() {
               <input
                 id="stock-search-input"
                 className="input-shell"
-                placeholder="품목명 또는 바코드"
+                list="stock-item-search-list"
+                placeholder="품목명 검색"
                 value={keyword}
                 onChange={(event) => {
                   const nextKeyword = event.target.value;
                   startTransition(() => setKeyword(nextKeyword));
                 }}
               />
+              <datalist id="stock-item-search-list">
+                {(itemRows ?? []).map((itemRow) => (
+                  <option key={itemRow.id} value={itemRow.name} />
+                ))}
+              </datalist>
             </div>
 
             <div className="stock-filter-group">
@@ -431,7 +436,6 @@ export function StockCatalogView() {
           <section className="surface-card stock-table-card">
             <div className="surface-head">
               <div>
-                <span className="section-pill">Products</span>
                 <h3>재고 리스트</h3>
                 <p>표시는 체크한 속성만 유지하고, 길어질 때는 표 안에서 가로 스크롤됩니다.</p>
               </div>
@@ -442,14 +446,14 @@ export function StockCatalogView() {
                     onClick={() => setDisplayMode("list")}
                     type="button"
                   >
-                    List
+                    리스트
                   </button>
                   <button
                     className={`stock-view-pill${displayMode === "grid" ? " is-active" : ""}`}
                     onClick={() => setDisplayMode("grid")}
                     type="button"
                   >
-                    Grid
+                    카드
                   </button>
                 </div>
                 <button

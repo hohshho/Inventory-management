@@ -4,6 +4,8 @@ import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAuthSession } from "@/components/auth-session-provider";
+import { useAutoClearingText } from "@/hooks/use-auto-clearing-text";
+import { useToastFeedback } from "@/hooks/use-toast-feedback";
 import { apiPost, type UserSession } from "@/lib/api";
 
 type ProfileForm = {
@@ -15,6 +17,9 @@ export function AccountSettingsView() {
   const { profile, refreshProfile } = useAuthSession();
   const [successText, setSuccessText] = useState("");
   const [errorText, setErrorText] = useState("");
+  useAutoClearingText(successText, setSuccessText);
+  useAutoClearingText(errorText, setErrorText);
+  useToastFeedback(successText, errorText);
   const { register, handleSubmit, reset } = useForm<ProfileForm>({
     defaultValues: {
       name: profile?.name ?? "",
@@ -84,10 +89,6 @@ export function AccountSettingsView() {
               {...register("email", { required: true })}
             />
           </div>
-
-          {successText ? <div className="badge ok">{successText}</div> : null}
-          {errorText ? <div className="badge danger">{errorText}</div> : null}
-
           <div className="action-row">
             <button className="button primary" disabled={updateProfileMutation.isPending} type="submit">
               {updateProfileMutation.isPending ? "저장 중..." : "이름 저장"}

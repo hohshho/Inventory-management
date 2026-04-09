@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAuthSession } from "@/components/auth-session-provider";
+import { useAutoClearingText } from "@/hooks/use-auto-clearing-text";
+import { useToastFeedback } from "@/hooks/use-toast-feedback";
 import {
   apiGet,
   apiPost,
@@ -59,6 +61,10 @@ export function WorkspaceGroupsView() {
   const [successText, setSuccessText] = useState("");
   const [errorText, setErrorText] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<GroupMembership | null>(null);
+
+  useAutoClearingText(successText, setSuccessText);
+  useAutoClearingText(errorText, setErrorText);
+  useToastFeedback(successText, errorText);
 
   const createGroupForm = useForm<GroupCreateForm>({
     defaultValues: { name: "" },
@@ -304,7 +310,7 @@ export function WorkspaceGroupsView() {
     <div className="view-stack workbench-page">
       <section className="surface-card workspace-hero">
         <div className="workspace-hero-copy">
-          <span className="section-pill">Workspace</span>
+          <span className="section-pill">그룹</span>
           <h2>그룹 관리</h2>
           <p>그룹 생성, 초대 코드 가입, 승인, 멤버 권한 관리를 한 화면에서 처리합니다.</p>
         </div>
@@ -316,15 +322,11 @@ export function WorkspaceGroupsView() {
           </div>
           <div className="workspace-stat-card">
             <span>계정 구분</span>
-            <strong>{isMasterAccount ? "master" : "member"}</strong>
+            <strong>{isMasterAccount ? "관리 계정" : "일반 멤버"}</strong>
             <small>{profile?.email ?? "-"}</small>
           </div>
         </div>
       </section>
-
-      {successText ? <div className="badge ok">{successText}</div> : null}
-      {errorText ? <div className="badge danger">{errorText}</div> : null}
-
       <section className="duo-grid workspace-setup-grid">
         <article className="surface-card workspace-panel">
           <div className="panel-heading">
@@ -468,13 +470,13 @@ export function WorkspaceGroupsView() {
               <h2>초대 코드 관리</h2>
               <p>소유자는 초대 링크 복사와 초대 코드 재발급을 할 수 있습니다.</p>
             </div>
-            <span className={`badge ${canManageGroup ? "ok" : "warn"}`}>{canManageGroup ? "owner" : "읽기 전용"}</span>
+            <span className={`badge ${canManageGroup ? "ok" : "warn"}`}>{canManageGroup ? "소유자" : "읽기 전용"}</span>
           </div>
 
           {canManageGroup ? (
             <div className="workspace-invite-grid">
               <div className="workspace-invite-card">
-                <span className="section-pill">Invite Code</span>
+                <span className="section-pill">초대 코드</span>
                 <strong>{activeMembership?.inviteCode ?? "-"}</strong>
                 <p>코드를 재발급하면 기존 초대 코드는 더 이상 사용할 수 없습니다.</p>
               </div>

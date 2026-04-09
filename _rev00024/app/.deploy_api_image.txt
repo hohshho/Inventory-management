@@ -1,0 +1,1 @@
+asia-northeast3-docker.pkg.dev/inventory-management-29f84/inventory-images/inventory-api:20260409-093903-ver2

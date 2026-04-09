@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useLedgerFeed } from "@/hooks/queries/use-ledger-feed";
 import { useLowStockAlerts } from "@/hooks/queries/use-low-stock-alerts";
 import { useScheduleDigest } from "@/hooks/queries/use-schedule-digest";
+import { useAutoClearingText } from "@/hooks/use-auto-clearing-text";
+import { useToastFeedback } from "@/hooks/use-toast-feedback";
 import { apiPost } from "@/lib/api";
 
 type StockInsightRailProps = {
@@ -50,6 +52,10 @@ export function StockInsightRail({
   const { data: schedulerBundle } = useScheduleDigest(activeMonthKey);
   const { data: lowStockAlerts } = useLowStockAlerts();
 
+  useAutoClearingText(successToast, setSuccessToast);
+  useAutoClearingText(errorToast, setErrorToast);
+  useToastFeedback(successToast, errorToast);
+
   const activeMemoRecord = useMemo(
     () => schedulerBundle?.memos.find((memo) => memo.memoDate === activeDateKey) ?? null,
     [activeDateKey, schedulerBundle?.memos],
@@ -85,13 +91,13 @@ export function StockInsightRail({
 
   const timelineRows = (recentHistoryRows ?? []).slice(0, 4);
   const lowStockRows = (lowStockAlerts ?? []).slice(0, 5);
+
   return (
     <aside className="primary-column">
       <section className="surface-card stock-rail-card">
         <div className="surface-head">
           <div>
-            <span className="section-pill">Status</span>
-            <h3>상품 상태 카드</h3>
+            <h3>재고 상태 카드</h3>
             <p>현재 재고 상태와 부족 수량을 빠르게 확인합니다.</p>
           </div>
         </div>
@@ -119,14 +125,13 @@ export function StockInsightRail({
       <section className="surface-card stock-rail-card">
         <div className="surface-head">
           <div>
-            <span className="section-pill">Low Stock Alerts</span>
-            <h3>재고 부족 알림</h3>
-            <p>임계치 이하 재고를 위치별로 바로 확인합니다.</p>
+            <h3>부족 재고 알림</h3>
+            <p>기준 수량 이하 재고를 위치별로 바로 확인합니다.</p>
           </div>
         </div>
 
         {lowStockRows.length === 0 ? (
-          <div className="loading-state">현재 부족 알림이 없습니다.</div>
+          <div className="loading-state">현재 부족 재고 알림이 없습니다.</div>
         ) : (
           <div className="stock-rail-timeline">
             {lowStockRows.map((alertRow) => (
@@ -134,7 +139,7 @@ export function StockInsightRail({
                 <div>
                   <strong>{alertRow.itemName}</strong>
                   <div className="subtle">
-                    {alertRow.locationName} / 기준 {alertRow.lowStockThreshold}
+                    위치: {alertRow.locationName} / 기준 {alertRow.lowStockThreshold}
                     {alertRow.unit}
                   </div>
                 </div>
@@ -154,9 +159,8 @@ export function StockInsightRail({
       <section className="surface-card stock-rail-card">
         <div className="surface-head">
           <div>
-            <span className="section-pill">Recent Changes</span>
             <h3>최근 변경</h3>
-            <p>최근 재고 변경 이력과 작업자를 함께 확인합니다.</p>
+            <p>최근 재고 변경 사유와 변경자를 함께 확인합니다.</p>
           </div>
         </div>
 
@@ -167,10 +171,11 @@ export function StockInsightRail({
             {timelineRows.map((timelineRow) => (
               <article className="stock-rail-timeline-item" key={timelineRow.id}>
                 <div>
-                  <strong>{timelineRow.itemName}</strong>
+                  <strong>{timelineRow.reason}</strong>
                   <div className="subtle">
-                    {timelineRow.locationName} / {timelineRow.createdByName}
+                    물품: {timelineRow.itemName} / 변경자: {timelineRow.createdByName}
                   </div>
+                  <div className="subtle">대상 재고: {timelineRow.locationName}</div>
                 </div>
                 <div className="stock-rail-timeline-meta">
                   <strong>
@@ -187,9 +192,8 @@ export function StockInsightRail({
       <section className="surface-card stock-rail-card">
         <div className="surface-head">
           <div>
-            <span className="section-pill">Order Notes</span>
             <h3>발주 메모</h3>
-            <p>날짜별 발주 메모를 확인하고 저장합니다.</p>
+            <p>날짜별 메모를 확인하고 저장합니다.</p>
           </div>
           <button
             className="badge schedule-date-trigger"
@@ -225,7 +229,6 @@ export function StockInsightRail({
                     type="button"
                   >
                     <span>{Number(dateKey.slice(-2))}</span>
-                    {memoRecord ? <small>memo</small> : null}
                   </button>
                 );
               })}
@@ -233,19 +236,16 @@ export function StockInsightRail({
           </div>
         ) : null}
 
-        {successToast ? <div className="badge ok">{successToast}</div> : null}
-        {errorToast ? <div className="badge danger">{errorToast}</div> : null}
-
         <div className="stock-order-note">
           <textarea
             className="input-area"
-            placeholder="예: 우유 20개 추가 발주, 버터는 이번 주 제외"
+            placeholder="예: 교체용 20개 추가 발주, 다음 주 예산 확인 후 구매"
             value={orderMemoDraft}
             onChange={(event) => setOrderMemoDraft(event.target.value)}
           />
           {activeMemoRecord ? (
             <div className="subtle">
-              {activeMemoRecord.createdByName} · {activeMemoRecord.updatedAtLabel}
+              {activeMemoRecord.createdByName} / {activeMemoRecord.updatedAtLabel}
             </div>
           ) : (
             <div className="subtle">선택한 날짜에 저장된 메모가 없습니다.</div>
@@ -256,7 +256,7 @@ export function StockInsightRail({
             onClick={() => saveOrderMemoMutation.mutate(orderMemoDraft)}
             type="button"
           >
-            {saveOrderMemoMutation.isPending ? "저장 중.." : "발주 메모 저장"}
+            {saveOrderMemoMutation.isPending ? "저장 중..." : "발주 메모 저장"}
           </button>
         </div>
       </section>

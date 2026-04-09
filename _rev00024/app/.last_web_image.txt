@@ -1,0 +1,1 @@
+asia-northeast3-docker.pkg.dev/inventory-management-29f84/inventory-images/inventory-web:20260407-134338-railfoot

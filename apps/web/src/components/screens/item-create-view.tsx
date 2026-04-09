@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFieldArray, useForm } from "react-hook-form";
-import { MobileBarcodeInput } from "@/components/mobile-barcode-input";
+import { useAutoClearingText } from "@/hooks/use-auto-clearing-text";
+import { useToastFeedback } from "@/hooks/use-toast-feedback";
 import { useZoneMap } from "@/hooks/queries/use-zone-map";
 import { apiGet, apiPost, type CreateItemInput, type ItemRecord } from "@/lib/api";
 
@@ -15,7 +16,6 @@ const OPTIONAL_SECTIONS: Array<{
   title: string;
   description: string;
 }> = [
-  { key: "barcode", title: "바코드", description: "모바일 카메라나 이미지로 바코드를 읽어 추가합니다." },
   { key: "categories", title: "분류 체계", description: "1차부터 3차까지 필요한 깊이만 추가합니다." },
   { key: "memo", title: "메모", description: "품목별 설명이나 주의사항을 남깁니다." },
   { key: "customFields", title: "추가 속성값", description: "색상, 제조사, 규격 같은 사용자 정의 항목을 만듭니다." },
@@ -41,6 +41,9 @@ export function ItemCreateView() {
     memo: false,
     customFields: false,
   });
+  useAutoClearingText(successText, setSuccessText);
+  useAutoClearingText(errorText, setErrorText);
+  useToastFeedback(successText, errorText);
   const { control, register, handleSubmit, reset, setValue, watch } = useForm<CreateItemInput>({
     defaultValues: {
       name: "",
@@ -62,7 +65,6 @@ export function ItemCreateView() {
     name: "customFields",
   });
   const selectedLocationId = watch("locationId");
-  const barcodeValue = watch("barcode") ?? "";
   const categoryLevel1 = watch("categoryLevel1") ?? "";
   const categoryLevel2 = watch("categoryLevel2") ?? "";
   const activeSectionCount = useMemo(() => Object.values(visibleSections).filter(Boolean).length, [visibleSections]);
@@ -295,24 +297,6 @@ export function ItemCreateView() {
                     />
                   </div>
 
-                  {visibleSections.barcode ? (
-                    <div className="item-create-added-card">
-                      <div className="panel-heading">
-                        <h3>바코드</h3>
-                        <button className="button" onClick={() => hideSection("barcode")} type="button">
-                          빼기
-                        </button>
-                      </div>
-                      <MobileBarcodeInput
-                        inputId="item-barcode-input"
-                        label="바코드"
-                        placeholder="선택 입력"
-                        value={barcodeValue}
-                        onChange={(nextValue) => setValue("barcode", nextValue, { shouldDirty: true })}
-                      />
-                    </div>
-                  ) : null}
-
                   {visibleSections.categories ? (
                     <div className="item-create-added-card">
                       <div className="panel-heading">
@@ -482,9 +466,6 @@ export function ItemCreateView() {
                   ) : null}
                 </div>
               </section>
-
-              {successText ? <div className="badge ok">{successText}</div> : null}
-              {errorText ? <div className="badge danger">{errorText}</div> : null}
 
               <div className="action-row">
                 <button className="button primary" disabled={createItemMutation.isPending} type="submit">

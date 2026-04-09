@@ -7,6 +7,8 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { MobileBarcodeInput } from "@/components/mobile-barcode-input";
 import { useCounterpartyList } from "@/hooks/queries/use-counterparty-list";
 import { useStockProfile } from "@/hooks/queries/use-stock-profile";
+import { useAutoClearingText } from "@/hooks/use-auto-clearing-text";
+import { useToastFeedback } from "@/hooks/use-toast-feedback";
 import { useZoneMap } from "@/hooks/queries/use-zone-map";
 import { apiGet, apiPost, type HistoricalSnapshot, type InventoryAdjustmentInput, type ItemRecord, type UpdateItemInput } from "@/lib/api";
 
@@ -48,6 +50,9 @@ export function ItemProfileView({ itemId }: ItemProfileViewProps) {
   const [successText, setSuccessText] = useState("");
   const [errorText, setErrorText] = useState("");
   const [snapshotAt, setSnapshotAt] = useState(() => new Date().toISOString().slice(0, 16));
+  useAutoClearingText(successText, setSuccessText);
+  useAutoClearingText(errorText, setErrorText);
+  useToastFeedback(successText, errorText);
   const { register, handleSubmit, reset, watch } = useForm<InventoryAdjustmentInput>({
     defaultValues: {
       inventoryId: "",
@@ -222,10 +227,6 @@ export function ItemProfileView({ itemId }: ItemProfileViewProps) {
           </div>
         </div>
       </section>
-
-      {successText ? <div className="badge ok">{successText}</div> : null}
-      {errorText ? <div className="badge danger">{errorText}</div> : null}
-
       {detailSectionMode === "item" ? (
         <section>
           <article className="surface-card">
@@ -359,7 +360,7 @@ export function ItemProfileView({ itemId }: ItemProfileViewProps) {
           <article className="surface-card">
             <div className="panel-heading">
               <h2>입출고 / 위치 이동</h2>
-              <span className="badge warn">거래처 연동</span>
+              <span className="badge">{itemBundle.inventories.length}개 위치 연결</span>
             </div>
 
             {itemBundle.inventories.length === 0 ? (
@@ -459,21 +460,28 @@ export function ItemProfileView({ itemId }: ItemProfileViewProps) {
           <h2>위치별 재고 요약</h2>
           <span className="badge">{itemBundle.inventories.length}개 위치</span>
         </div>
-        <div className="view-stack">
+        <div className="item-location-summary-grid">
           {itemBundle.inventories.map((inventoryRow) => (
-            <div className="info-row" key={inventoryRow.id}>
-              <div>
-                <strong>{inventoryRow.locationName}</strong>
-                <div className="subtle">바코드 {inventoryRow.barcode ?? "-"}</div>
+            <article className="item-location-summary-card" key={inventoryRow.id}>
+              <div className="item-location-summary-head">
+                <div>
+                  <strong>{inventoryRow.locationName}</strong>
+                  <div className="subtle">바코드 {inventoryRow.barcode ?? "-"}</div>
+                </div>
+                <span className={`badge ${inventoryRow.isLowStock ? "danger" : "ok"}`}>{inventoryRow.status}</span>
               </div>
-              <div>
+              <div className="item-location-summary-value">
+                {inventoryRow.quantity}
+                {inventoryRow.unit}
+              </div>
+              <div className="item-location-summary-meta">
+                <span>부족 기준</span>
                 <strong>
-                  {inventoryRow.quantity}
+                  {itemBundle.item.lowStockThreshold}
                   {inventoryRow.unit}
                 </strong>
-                <div className={`badge ${inventoryRow.isLowStock ? "danger" : "ok"}`}>{inventoryRow.status}</div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </section>

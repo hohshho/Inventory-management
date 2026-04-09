@@ -5,9 +5,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAuthSession } from "@/components/auth-session-provider";
+import { HelpHint } from "@/components/help-hint";
+import { useUiLanguage, type UiLanguage } from "@/components/ui-language-provider";
 import { useLedgerFeed } from "@/hooks/queries/use-ledger-feed";
 import { useLowStockAlerts } from "@/hooks/queries/use-low-stock-alerts";
-import { apiGet, type GroupJoinRequest } from "@/lib/api";
+import { apiGet, type GroupJoinRequest, type ItemRecord } from "@/lib/api";
 import { useStockBrowseState } from "@/stores/stock-browse-state";
 
 type RailTone = "dark" | "gradient" | "light";
@@ -119,11 +121,160 @@ const defaultLayoutPrefs: LayoutPrefs = {
   canvasWidth: "full",
 };
 
+type UiCopy = {
+  title: string;
+  subtitle: string;
+  breadcrumb: string;
+};
+
+const mobileQuickdockVisibleHrefs = new Set(["/inventory", "/items/new", "/history", "/groups"]);
+
+const localizedRouteCopyMap: Record<string, Record<UiLanguage, UiCopy>> = {
+  "/": {
+    ko: {
+      title: "운영 대시보드",
+      subtitle: "오늘 확인할 항목과 최근 변경 흐름을 한 화면에서 확인합니다.",
+      breadcrumb: "대시보드",
+    },
+    en: {
+      title: "Operations Dashboard",
+      subtitle: "Review today's checks and recent inventory changes in one place.",
+      breadcrumb: "Dashboard",
+    },
+  },
+  "/inventory": {
+    ko: {
+      title: "재고 리스트",
+      subtitle: "품목 검색, 상태 필터, 최근 변경 정보를 함께 확인합니다.",
+      breadcrumb: "재고",
+    },
+    en: {
+      title: "Inventory List",
+      subtitle: "Search items, filter stock status, and review recent changes.",
+      breadcrumb: "Inventory",
+    },
+  },
+  "/items/new": {
+    ko: {
+      title: "품목 등록",
+      subtitle: "새 품목과 초기 수량을 입력해 바로 재고에 반영합니다.",
+      breadcrumb: "품목 등록",
+    },
+    en: {
+      title: "New Item",
+      subtitle: "Create a new item and register its initial quantity.",
+      breadcrumb: "New Item",
+    },
+  },
+  "/locations": {
+    ko: {
+      title: "보관 위치",
+      subtitle: "보관 위치와 거래처를 관리합니다.",
+      breadcrumb: "보관 위치",
+    },
+    en: {
+      title: "Locations",
+      subtitle: "Manage storage locations and suppliers.",
+      breadcrumb: "Locations",
+    },
+  },
+  "/scan": {
+    ko: {
+      title: "바코드 스캔",
+      subtitle: "추후 개발 예정 화면입니다.",
+      breadcrumb: "스캔",
+    },
+    en: {
+      title: "Barcode Scan",
+      subtitle: "This view is hidden for now and will be expanded later.",
+      breadcrumb: "Scan",
+    },
+  },
+  "/history": {
+    ko: {
+      title: "변경 이력",
+      subtitle: "누가 어떤 재고를 변경했는지 시간순으로 확인합니다.",
+      breadcrumb: "이력",
+    },
+    en: {
+      title: "Change History",
+      subtitle: "Track who changed which stock and when.",
+      breadcrumb: "History",
+    },
+  },
+  "/groups": {
+    ko: {
+      title: "그룹 관리",
+      subtitle: "그룹 생성, 가입 요청, 승인, 권한 변경을 한곳에서 관리합니다.",
+      breadcrumb: "그룹",
+    },
+    en: {
+      title: "Groups",
+      subtitle: "Manage group creation, join requests, approvals, and roles.",
+      breadcrumb: "Groups",
+    },
+  },
+  "/account": {
+    ko: {
+      title: "개인정보 수정",
+      subtitle: "이름과 이메일 등 현재 계정 정보를 관리합니다.",
+      breadcrumb: "개인정보",
+    },
+    en: {
+      title: "Account Settings",
+      subtitle: "Manage your current account information.",
+      breadcrumb: "Account",
+    },
+  },
+};
+
 function formatTodayStamp() {
   return new Date().toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
+  });
+}
+
+function getWorkspaceRailSections(language: UiLanguage): RailSection[] {
+  return [
+    {
+      title: language === "ko" ? "메뉴" : "Menu",
+      items: [
+        { href: "/", label: language === "ko" ? "대시보드" : "Dashboard", icon: "dashboard" },
+        { href: "/inventory", label: language === "ko" ? "재고" : "Inventory", icon: "inventory" },
+        { href: "/items/new", label: language === "ko" ? "품목 등록" : "New Item", icon: "item" },
+        { href: "/locations", label: language === "ko" ? "보관 위치" : "Locations", icon: "location" },
+        { href: "/history", label: language === "ko" ? "이력" : "History", icon: "history" },
+        { href: "/groups", label: language === "ko" ? "그룹" : "Groups", icon: "group" },
+      ],
+    },
+  ];
+}
+
+function getLockedRailSections(language: UiLanguage): RailSection[] {
+  return [
+    {
+      title: language === "ko" ? "작업공간" : "Workspace",
+      items: [
+        {
+          href: "/groups",
+          label: language === "ko" ? "그룹" : "Groups",
+          icon: "group",
+          badge: language === "ko" ? "선택 필요" : "Required",
+        },
+      ],
+    },
+  ];
+}
+
+function formatNowStamp(language: UiLanguage) {
+  return new Date().toLocaleString(language === "ko" ? "ko-KR" : "en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
@@ -137,6 +288,19 @@ function getRoleLabel(role?: string | null) {
   if (role === "write") return "편집 가능";
   if (role === "read") return "읽기 전용";
   return "그룹 없음";
+}
+
+function isWithinRecentDays(dateValue: string | undefined, dayCount: number) {
+  if (!dateValue) {
+    return false;
+  }
+
+  const parsedTime = new Date(dateValue).getTime();
+  if (Number.isNaN(parsedTime)) {
+    return false;
+  }
+
+  return Date.now() - parsedTime <= dayCount * 24 * 60 * 60 * 1000;
 }
 
 function RailIcon({ name }: { name: RailLink["icon"] }) {
@@ -269,11 +433,13 @@ function StyleRail({
   onClose,
   prefs,
   onChange,
+  language,
 }: {
   open: boolean;
   onClose: () => void;
   prefs: LayoutPrefs;
   onChange: (nextPrefs: LayoutPrefs) => void;
+  language: UiLanguage;
 }) {
   return (
     <>
@@ -281,8 +447,8 @@ function StyleRail({
       <aside className={`style-rail${open ? " is-open" : ""}`}>
         <div className="style-rail-head">
           <div>
-            <h3>화면 설정</h3>
-            <p>사이드바와 본문 테마를 빠르게 바꿉니다.</p>
+            <h3>{language === "ko" ? "화면 설정" : "Display Settings"}</h3>
+            <p>{language === "ko" ? "사이드바와 본문 테마를 빠르게 바꿉니다." : "Adjust the sidebar and page theme quickly."}</p>
           </div>
           <button className="utility-button" onClick={onClose} type="button">
             ×
@@ -290,28 +456,58 @@ function StyleRail({
         </div>
 
         <div className="style-block">
-          <span className="style-block-label">Rail Tone</span>
+          <div className="style-block-head">
+            <span className="style-block-label">{language === "ko" ? "사이드바 톤" : "Rail Tone"}</span>
+            <HelpHint
+              description={
+                language === "ko"
+                  ? "사이드바와 상단 HUD의 색감 분위기를 바꿉니다."
+                  : "Changes the color mood of the sidebar and top HUD."
+              }
+              label={language === "ko" ? "사이드바 톤 안내" : "Rail tone help"}
+            />
+          </div>
           <div className="style-choice-row">
             {(["gradient", "dark", "light"] as RailTone[]).map((value) => (
               <button
                 key={value}
                 className={`style-choice${prefs.railTone === value ? " is-active" : ""}`}
                 onClick={() => onChange({ ...prefs, railTone: value })}
+                data-tooltip={
+                  language === "ko"
+                    ? value === "gradient"
+                      ? "기본 밝은 그라데이션 테마"
+                      : value === "dark"
+                        ? "어두운 집중형 테마"
+                        : "밝은 단색형 테마"
+                    : value === "gradient"
+                      ? "Default bright gradient theme"
+                      : value === "dark"
+                        ? "Dark focused theme"
+                        : "Light single-tone theme"
+                }
                 type="button"
               >
-                {value}
+                {language === "ko"
+                  ? value === "gradient"
+                    ? "그라데이션"
+                    : value === "dark"
+                      ? "다크"
+                      : "라이트"
+                  : value}
               </button>
             ))}
           </div>
         </div>
 
         <div className="style-block">
-          <span className="style-block-label">Rail Width</span>
+          <span className="style-block-label">{language === "ko" ? "사이드바 너비" : "Rail Width"}</span>
           <div className="style-toggle-row">
-            <span>Compact rail</span>
+            <span>{language === "ko" ? "축소형 사이드바" : "Compact rail"}</span>
             <button
               className={`style-toggle${prefs.compactRail ? " is-on" : ""}`}
               onClick={() => onChange({ ...prefs, compactRail: !prefs.compactRail })}
+              data-tooltip={language === "ko" ? "메뉴를 아이콘 중심으로 줄여 화면 폭을 넓힙니다." : "Shrinks the sidebar to icon-first navigation."}
               type="button"
             >
               <span />
@@ -320,48 +516,75 @@ function StyleRail({
         </div>
 
         <div className="style-block">
-          <span className="style-block-label">Panel Tone</span>
+          <span className="style-block-label">{language === "ko" ? "패널 톤" : "Panel Tone"}</span>
           <div className="style-choice-row">
             {(["default", "soft"] as PanelTone[]).map((value) => (
               <button
                 key={value}
                 className={`style-choice${prefs.panelTone === value ? " is-active" : ""}`}
                 onClick={() => onChange({ ...prefs, panelTone: value })}
+                data-tooltip={
+                  language === "ko"
+                    ? value === "default"
+                      ? "기본 대비를 유지합니다."
+                      : "패널 대비를 부드럽게 줄입니다."
+                    : value === "default"
+                      ? "Keeps the default contrast."
+                      : "Softens panel contrast."
+                }
                 type="button"
               >
-                {value}
+                {language === "ko" ? (value === "default" ? "기본" : "부드럽게") : value}
               </button>
             ))}
           </div>
         </div>
 
         <div className="style-block">
-          <span className="style-block-label">Hud Mode</span>
+          <span className="style-block-label">{language === "ko" ? "상단 바 효과" : "Hud Mode"}</span>
           <div className="style-choice-row">
             {(["solid", "glass"] as HudMode[]).map((value) => (
               <button
                 key={value}
                 className={`style-choice${prefs.hudMode === value ? " is-active" : ""}`}
                 onClick={() => onChange({ ...prefs, hudMode: value })}
+                data-tooltip={
+                  language === "ko"
+                    ? value === "solid"
+                      ? "불투명한 상단 바"
+                      : "유리처럼 반투명한 상단 바"
+                    : value === "solid"
+                      ? "Solid top bar"
+                      : "Glass-like translucent top bar"
+                }
                 type="button"
               >
-                {value}
+                {language === "ko" ? (value === "solid" ? "단색" : "글래스") : value}
               </button>
             ))}
           </div>
         </div>
 
         <div className="style-block">
-          <span className="style-block-label">Canvas Width</span>
+          <span className="style-block-label">{language === "ko" ? "본문 너비" : "Canvas Width"}</span>
           <div className="style-choice-row">
             {(["full", "boxed"] as CanvasWidth[]).map((value) => (
               <button
                 key={value}
                 className={`style-choice${prefs.canvasWidth === value ? " is-active" : ""}`}
                 onClick={() => onChange({ ...prefs, canvasWidth: value })}
+                data-tooltip={
+                  language === "ko"
+                    ? value === "full"
+                      ? "화면 폭을 넓게 사용합니다."
+                      : "본문을 가운데 정렬해 정돈된 폭으로 보여줍니다."
+                    : value === "full"
+                      ? "Uses the full canvas width."
+                      : "Centers the content in a boxed layout."
+                }
                 type="button"
               >
-                {value}
+                {language === "ko" ? (value === "full" ? "전체" : "박스형") : value}
               </button>
             ))}
           </div>
@@ -437,9 +660,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, profile, loading, signOutUser } = useAuthSession();
+  const { language, setLanguage } = useUiLanguage();
+  const keyword = useStockBrowseState((state) => state.keyword);
   const setShelfKeyword = useStockBrowseState((state) => state.setKeyword);
   const setShelfZone = useStockBrowseState((state) => state.setZoneId);
   const [queryDraft, setQueryDraft] = useState("");
+  const [nowLabel, setNowLabel] = useState(() => formatNowStamp(language));
   const [styleRailOpen, setStyleRailOpen] = useState(false);
   const [mobileRailOpen, setMobileRailOpen] = useState(false);
   const [mobileQuickdockOpen, setMobileQuickdockOpen] = useState(true);
@@ -447,6 +673,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [openHudMenu, setOpenHudMenu] = useState<HudMenuKind>(null);
   const [layoutPrefs, setLayoutPrefs] = useState<LayoutPrefs>(defaultLayoutPrefs);
   const [readNoticeIds, setReadNoticeIds] = useState<string[]>([]);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const { data: itemRows } = useQuery({
+    queryKey: ["item-records-shell"],
+    queryFn: () => apiGet<ItemRecord[]>("/items"),
+    enabled: Boolean(user),
+  });
   const { data: lowStockAlerts } = useLowStockAlerts(Boolean(profile?.activeGroupId));
   const { data: recentHistoryRows } = useLedgerFeed(Boolean(profile?.activeGroupId));
   const { data: pendingJoinRequests } = useQuery({
@@ -458,22 +690,39 @@ export function AppShell({ children }: { children: ReactNode }) {
   const hasActiveGroup = Boolean(profile?.activeGroupId);
   const routeCopy =
     pathname.startsWith("/items/") && pathname !== "/items/new"
-      ? {
-          title: "품목 상세",
-          subtitle: "품목별 재고 현황과 최근 변경 이력을 확인합니다.",
-          breadcrumb: "ITEMS",
-        }
-      : routeCopyMap[pathname] ?? routeCopyMap["/groups"];
+      ? language === "ko"
+        ? {
+            title: "품목 상세",
+            subtitle: "품목별 재고 현황과 최근 변경 이력을 확인합니다.",
+            breadcrumb: "품목 상세",
+          }
+        : {
+            title: "Item Detail",
+            subtitle: "Review current stock and recent changes for this item.",
+            breadcrumb: "Item Detail",
+          }
+      : localizedRouteCopyMap[pathname]?.[language] ?? localizedRouteCopyMap["/groups"][language];
   const isLoginScreen = pathname === "/login";
   const isGroupsScreen = pathname === "/groups";
-  const activeRailSections = hasActiveGroup ? workspaceRailSections : lockedRailSections;
+  const activeRailSections = hasActiveGroup ? getWorkspaceRailSections(language) : getLockedRailSections(language);
   const mobileRailLinks =
-    workspaceRailSections[0]?.items.filter((item) => mobileQuickdockHrefs.has(item.href)) ?? [];
-  const workspaceLabel = profile?.activeGroupName ?? "그룹 선택 필요";
+    getWorkspaceRailSections(language)[0]?.items.filter((item) => mobileQuickdockVisibleHrefs.has(item.href)) ?? [];
+  const workspaceLabel = profile?.activeGroupName ?? (language === "ko" ? "그룹 선택 필요" : "Group required");
   const roleLabel = getRoleLabel(profile?.activeGroupRole);
   const avatarLabel = useMemo(
     () => profile?.name?.trim() || user?.displayName?.trim() || user?.email?.split("@")[0] || "사용자",
     [profile?.name, user?.displayName, user?.email],
+  );
+  const itemSearchOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (itemRows ?? [])
+            .map((itemRow) => itemRow.name.trim())
+            .filter((itemName) => itemName.length > 0),
+        ),
+      ).sort((leftName, rightName) => leftName.localeCompare(rightName, "ko")),
+    [itemRows],
   );
   const noticeStorageKey = useMemo(
     () => (user ? `im-read-notices:${user.uid}:${profile?.activeGroupId ?? "none"}` : null),
@@ -488,29 +737,44 @@ export function AppShell({ children }: { children: ReactNode }) {
       tone: "danger" as const,
     }));
 
-    const joinRequestNotices = (pendingJoinRequests ?? []).slice(0, 2).map((requestRow) => ({
-      id: `join-request-${requestRow.id}`,
-      title: `${requestRow.name} 가입 요청`,
-      body: requestRow.email || requestRow.userId,
-      time: requestRow.requestedAtLabel,
-      tone: "warn" as const,
-    }));
+    const joinRequestNotices = (pendingJoinRequests ?? [])
+      .filter((requestRow) => isWithinRecentDays(requestRow.requestedAt, 7))
+      .slice(0, 2)
+      .map((requestRow) => ({
+        id: `join-request-${requestRow.id}`,
+        title: language === "ko" ? `${requestRow.name} 가입 요청` : `${requestRow.name} requested access`,
+        body: requestRow.email || requestRow.userId,
+        time: requestRow.requestedAtLabel,
+        tone: "warn" as const,
+      }));
 
-    const historyNotices = (recentHistoryRows ?? []).slice(0, 2).map((historyRow) => ({
-      id: `history-${historyRow.id}`,
-      title:
-        historyRow.changeType === "location_create"
-          ? `${historyRow.itemName} 위치 등록`
-          : historyRow.changeType === "counterparty_create"
-            ? `${historyRow.itemName} 거래처 등록`
-            : `${historyRow.itemName} 변경`,
-      body: `${historyRow.locationName} · ${historyRow.reason}`,
-      time: historyRow.createdAtLabel,
-      tone: "ok" as const,
-    }));
+    const historyNotices = (recentHistoryRows ?? [])
+      .filter((historyRow) => isWithinRecentDays(historyRow.createdAt, 7))
+      .slice(0, 2)
+      .map((historyRow) => ({
+        id: `history-${historyRow.id}`,
+        title:
+          historyRow.changeType === "location_create"
+            ? language === "ko"
+              ? `${historyRow.itemName} 위치 등록`
+              : `${historyRow.itemName} location added`
+            : historyRow.changeType === "counterparty_create"
+              ? language === "ko"
+                ? `${historyRow.itemName} 거래처 등록`
+                : `${historyRow.itemName} supplier added`
+              : language === "ko"
+                ? `${historyRow.itemName} 변경`
+                : `${historyRow.itemName} updated`,
+        body:
+          language === "ko"
+            ? `위치 ${historyRow.locationName} / 사유 ${historyRow.reason}`
+            : `Location ${historyRow.locationName} / Reason ${historyRow.reason}`,
+        time: historyRow.createdAtLabel,
+        tone: "ok" as const,
+      }));
 
     return [...lowStockNotices, ...joinRequestNotices, ...historyNotices].slice(0, 6);
-  }, [lowStockAlerts, pendingJoinRequests, recentHistoryRows]);
+  }, [language, lowStockAlerts, pendingJoinRequests, recentHistoryRows]);
   const unreadNoticeCount = useMemo(
     () => noticeFeed.filter((notice) => !readNoticeIds.includes(notice.id)).length,
     [noticeFeed, readNoticeIds],
@@ -604,6 +868,19 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [noticeStorageKey, readNoticeIds]);
 
   useEffect(() => {
+    setNowLabel(formatNowStamp(language));
+    const timer = window.setInterval(() => {
+      setNowLabel(formatNowStamp(language));
+    }, 30000);
+
+    return () => window.clearInterval(timer);
+  }, [language]);
+
+  useEffect(() => {
+    setQueryDraft(keyword);
+  }, [keyword]);
+
+  useEffect(() => {
     const shouldLockScroll = mobileRailOpen || alertRailOpen || styleRailOpen;
     const previousOverflow = document.body.style.overflow;
     const previousTouchAction = document.body.style.touchAction;
@@ -620,16 +897,30 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [alertRailOpen, mobileRailOpen, styleRailOpen]);
 
   useEffect(() => {
-    setReadNoticeIds((current) => current.filter((id) => noticeFeed.some((notice) => notice.id === id)));
-  }, [noticeFeed]);
-
-  useEffect(() => {
     setMobileRailOpen(false);
     setMobileQuickdockOpen(false);
     setOpenHudMenu(null);
     setAlertRailOpen(false);
     setStyleRailOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 1100px)");
+    const legacyMediaQuery = mediaQuery as MediaQueryList & {
+      addListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+      removeListener?: (listener: (event: MediaQueryListEvent) => void) => void;
+    };
+    const syncViewportState = () => setIsMobileViewport(mediaQuery.matches);
+
+    syncViewportState();
+    if ("addEventListener" in mediaQuery) {
+      mediaQuery.addEventListener("change", syncViewportState);
+      return () => mediaQuery.removeEventListener("change", syncViewportState);
+    }
+
+    legacyMediaQuery.addListener?.(syncViewportState);
+    return () => legacyMediaQuery.removeListener?.(syncViewportState);
+  }, []);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(min-width: 1101px)");
@@ -754,6 +1045,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="hud-start">
               <button
                 className="utility-button mobile-menu-button"
+                data-tooltip={language === "ko" ? "메뉴 열기" : "Open menu"}
                 onClick={() => {
                   setOpenHudMenu(null);
                   setAlertRailOpen(false);
@@ -776,73 +1068,101 @@ export function AppShell({ children }: { children: ReactNode }) {
               >
                 <span className="search-dock-icon">⌕</span>
                 <input
-                  placeholder="Search..."
+                  list="global-item-search-list"
+                  placeholder={language === "ko" ? "품목명 검색" : "Search items"}
                   value={queryDraft}
                   onChange={(event) => setQueryDraft(event.target.value)}
                 />
               </form>
+              <datalist id="global-item-search-list">
+                {itemSearchOptions.map((itemName) => (
+                  <option key={itemName} value={itemName} />
+                ))}
+              </datalist>
             </div>
 
             <div className="hud-end">
-              <button
-                className="utility-button has-badge"
-                onClick={() => {
-                  setMobileRailOpen(false);
-                  setStyleRailOpen(false);
-                  setOpenHudMenu(null);
-                  setAlertRailOpen(true);
-                }}
-                type="button"
-              >
-                <UtilityIcon kind="bell" />
-                {unreadNoticeCount > 0 ? <span className="utility-badge danger">{unreadNoticeCount}</span> : null}
-              </button>
-
-              <div className="hud-anchor">
+              {!isMobileViewport ? (
+                <div className="language-switch" aria-label={language === "ko" ? "언어 선택" : "Language switch"}>
+                  <button
+                    className={`language-button${language === "ko" ? " is-active" : ""}`}
+                    onClick={() => setLanguage("ko")}
+                    type="button"
+                  >
+                    KO
+                  </button>
+                  <button
+                    className={`language-button${language === "en" ? " is-active" : ""}`}
+                    onClick={() => setLanguage("en")}
+                    type="button"
+                  >
+                    EN
+                  </button>
+                </div>
+              ) : null}
+              <div className="hud-end-actions">
                 <button
-                  className="profile-trigger"
-                  onClick={() => setOpenHudMenu((prev) => (prev === "profile" ? null : "profile"))}
-                  aria-expanded={openHudMenu === "profile"}
+                  className="utility-button has-badge"
+                  data-tooltip={language === "ko" ? "최근 7일 알림" : "Alerts from the last 7 days"}
+                  onClick={() => {
+                    setMobileRailOpen(false);
+                    setStyleRailOpen(false);
+                    setOpenHudMenu(null);
+                    setAlertRailOpen(true);
+                  }}
                   type="button"
                 >
-                  <div className="hud-profile">
-                    <span className="identity-chip hud-profile-avatar">{getInitialMark(avatarLabel)}</span>
-                    <div className="hud-profile-copy">
-                      <strong>{avatarLabel}</strong>
-                      <span>{roleLabel}</span>
-                    </div>
-                  </div>
-                  <span className="profile-trigger-icon">
-                    <UtilityIcon kind="chevron" />
-                  </span>
+                  <UtilityIcon kind="bell" />
+                  {unreadNoticeCount > 0 ? <span className="utility-badge danger">{unreadNoticeCount}</span> : null}
                 </button>
 
-                <HudTray open={openHudMenu === "profile"}>
-                  <div className="hud-tray-head">
-                    <strong>사용자 메뉴</strong>
-                  </div>
-                  <div className="hud-tray-list">
-                    <Link className="hud-tray-item" href="/account" onClick={() => setOpenHudMenu(null)}>
-                      <span>개인정보 수정</span>
-                      <small>이름 변경</small>
-                    </Link>
-                    <Link className="hud-tray-item" href="/groups" onClick={() => setOpenHudMenu(null)}>
-                      <span>그룹 관리</span>
-                      <small>{workspaceLabel}</small>
-                    </Link>
-                    <button
-                      className="hud-tray-item"
-                      onClick={() => {
-                        setOpenHudMenu(null);
-                        void signOutUser();
-                      }}
-                      type="button"
-                    >
-                      <span>로그아웃</span>
-                      <small>{user.email ?? ""}</small>
-                    </button>
-                  </div>
-                </HudTray>
+                <div className="hud-anchor">
+                  <button
+                    className="profile-trigger"
+                    data-tooltip={language === "ko" ? "계정 메뉴" : "Account menu"}
+                    onClick={() => setOpenHudMenu((prev) => (prev === "profile" ? null : "profile"))}
+                    aria-expanded={openHudMenu === "profile"}
+                    type="button"
+                  >
+                    <div className="hud-profile">
+                      <span className="identity-chip hud-profile-avatar">{getInitialMark(avatarLabel)}</span>
+                      <div className="hud-profile-copy">
+                        <strong>{avatarLabel}</strong>
+                        <span>{roleLabel}</span>
+                      </div>
+                    </div>
+                    <span className="profile-trigger-icon">
+                      <UtilityIcon kind="chevron" />
+                    </span>
+                  </button>
+
+                  <HudTray open={openHudMenu === "profile"}>
+                    <div className="hud-tray-head">
+                      <strong>{language === "ko" ? "사용자 메뉴" : "User menu"}</strong>
+                    </div>
+                    <div className="hud-tray-list">
+                      <Link className="hud-tray-item" href="/account" onClick={() => setOpenHudMenu(null)}>
+                        <span>{language === "ko" ? "개인정보 수정" : "Account settings"}</span>
+                        <small>{language === "ko" ? "이름 변경" : "Change your name"}</small>
+                      </Link>
+                      <Link className="hud-tray-item" href="/groups" onClick={() => setOpenHudMenu(null)}>
+                        <span>{language === "ko" ? "그룹 관리" : "Groups"}</span>
+                        <small>{workspaceLabel}</small>
+                      </Link>
+                      <button
+                        className="hud-tray-item"
+                        onClick={() => {
+                          setOpenHudMenu(null);
+                          void signOutUser();
+                        }}
+                        type="button"
+                      >
+                        <span>{language === "ko" ? "로그아웃" : "Sign out"}</span>
+                        <small>{user.email ?? ""}</small>
+                      </button>
+                    </div>
+                  </HudTray>
+                </div>
               </div>
             </div>
           </div>
@@ -852,23 +1172,34 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="canvas-titlebar">
             <div>
               <ol className="canvas-breadcrumbs">
-                <li>INVENTORY MANAGEMENT</li>
                 <li>{routeCopy.breadcrumb}</li>
               </ol>
               <h4>{routeCopy.title}</h4>
               <p>
                 {hasActiveGroup
                   ? routeCopy.subtitle
-                  : "먼저 그룹을 선택해야 다른 화면을 사용할 수 있습니다."}
+                  : language === "ko"
+                    ? "먼저 그룹을 선택해야 다른 화면을 사용할 수 있습니다."
+                    : "Select a group first to use the rest of the workspace."}
               </p>
             </div>
             <div className="canvas-actions">
-              <span className="canvas-date-pill">{formatTodayStamp()}</span>
               {profile?.activeGroupName ? (
-                <span className="button secondary">{profile.activeGroupName}</span>
+                <div className="canvas-context-card">
+                  <div className="canvas-context-grid">
+                    <div>
+                      <span className="canvas-context-label">{language === "ko" ? "현재 그룹" : "Current group"}</span>
+                      <strong className="canvas-context-value">{profile.activeGroupName}</strong>
+                    </div>
+                    <div>
+                      <span className="canvas-context-label">{language === "ko" ? "현재 시각" : "Current time"}</span>
+                      <strong className="canvas-context-value">{nowLabel}</strong>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <Link className="button primary" href="/groups">
-                  그룹 선택
+                  {language === "ko" ? "그룹 선택" : "Select group"}
                 </Link>
               )}
             </div>
@@ -880,11 +1211,28 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <button
         className="style-fab"
+        data-tooltip={language === "ko" ? "화면 설정" : "Display settings"}
         onClick={() => {
           setMobileRailOpen(false);
           setAlertRailOpen(false);
           setOpenHudMenu(null);
           setStyleRailOpen(true);
+        }}
+        style={{
+          position: "fixed",
+          top: "auto",
+          left: "auto",
+          right: isMobileViewport ? "18px" : "24px",
+          bottom: isMobileViewport ? "18px" : "24px",
+          width: "48px",
+          minWidth: "48px",
+          height: "48px",
+          padding: "0",
+          borderRadius: "999px",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1010,
         }}
         type="button"
       >
@@ -896,6 +1244,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         onClose={() => setStyleRailOpen(false)}
         prefs={layoutPrefs}
         onChange={setLayoutPrefs}
+        language={language}
       />
 
       <AlertRail
@@ -932,6 +1281,213 @@ export function AppShell({ children }: { children: ReactNode }) {
           );
         })}
       </nav>
+
+      <style jsx global>{`
+        .shell {
+          width: 100%;
+        }
+
+        .shell-main {
+          width: auto !important;
+          min-width: 0;
+          max-width: calc(100vw - var(--sidebar-width));
+          margin-left: var(--sidebar-width);
+          flex: 1 1 auto;
+        }
+
+        .control-hud,
+        .canvas-wrap,
+        .canvas-titlebar,
+        .canvas-body {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .style-fab {
+          display: inline-flex !important;
+          align-items: center;
+          justify-content: center;
+          width: 48px !important;
+          min-width: 48px !important;
+          height: 48px !important;
+          padding: 0 !important;
+          border-radius: 999px !important;
+          top: auto !important;
+          right: 24px !important;
+          bottom: 24px !important;
+          left: auto !important;
+          inset: auto 24px 24px auto !important;
+        }
+
+        .style-fab svg {
+          width: 18px;
+          height: 18px;
+          flex: none;
+        }
+
+        @media (max-width: 1100px) {
+          .shell-main {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-left: 0 !important;
+            flex: 1 1 auto !important;
+          }
+
+          .hud-inner {
+            min-height: auto;
+            display: flex !important;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            flex-wrap: nowrap;
+          }
+
+          .hud-start {
+            order: 1;
+            flex: 1 1 auto;
+            min-width: 0;
+            display: flex !important;
+            align-items: center;
+            gap: 8px;
+          }
+
+          .hud-end {
+            order: 2;
+            flex: none;
+            min-width: 0;
+            width: auto;
+            display: flex !important;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+          }
+
+          .hud-end-actions {
+            margin-left: 0;
+            gap: 6px;
+            flex-wrap: nowrap;
+          }
+
+          .language-switch {
+            display: none !important;
+          }
+
+          .search-dock {
+            width: auto !important;
+            min-width: 0;
+            flex: 1 1 auto;
+            height: 36px;
+            padding: 0 10px;
+          }
+
+          .search-dock input {
+            min-width: 0;
+            font-size: 0.9rem;
+          }
+
+          .mobile-menu-button,
+          .utility-button {
+            width: 34px;
+            height: 34px;
+            flex: none;
+          }
+
+          .profile-trigger {
+            min-height: 34px;
+            gap: 4px;
+            padding: 2px 4px;
+            flex: none;
+          }
+
+          .profile-trigger-icon {
+            width: 14px;
+            height: 14px;
+          }
+
+          .hud-profile {
+            gap: 0;
+          }
+
+          .hud-profile-avatar {
+            width: 28px;
+            height: 28px;
+          }
+
+          .hud-anchor {
+            position: relative;
+            flex: none;
+          }
+
+          .hud-anchor .hud-tray {
+            top: calc(100% + 8px);
+            right: 0;
+            left: auto;
+            width: min(280px, calc(100vw - 24px));
+            max-width: calc(100vw - 24px);
+            padding: 12px;
+          }
+
+          .hud-tray-list {
+            gap: 6px;
+          }
+
+          .hud-tray-item {
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px 12px;
+          }
+
+          .canvas-titlebar {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .canvas-actions {
+            width: 100%;
+            margin-left: 0;
+            justify-content: flex-start;
+          }
+
+          .canvas-context-card {
+            width: 100%;
+            max-width: none;
+            margin-left: 0;
+          }
+        }
+
+        @media (max-width: 720px) {
+          .canvas-wrap {
+            padding: 16px 14px 112px;
+          }
+
+          .hud-inner {
+            gap: 6px;
+            padding: 10px 10px;
+          }
+
+          .search-dock {
+            height: 34px;
+            padding: 0 8px;
+          }
+
+          .search-dock-icon {
+            font-size: 0.8rem;
+          }
+
+          .search-dock input {
+            font-size: 0.82rem;
+          }
+
+          .canvas-titlebar h4 {
+            font-size: 0.98rem;
+          }
+
+          .canvas-titlebar p {
+            font-size: 0.82rem;
+            line-height: 1.45;
+          }
+        }
+      `}</style>
     </div>
   );
 }

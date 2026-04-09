@@ -1,4 +1,4 @@
-﻿import { auth } from "@/lib/firebase/client";
+import { auth } from "@/lib/firebase/client";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:2001";
@@ -57,6 +57,7 @@ export type HistoryEntry = {
   createdByName: string;
   counterpartyName: string | null;
   relatedLocationName: string | null;
+  createdAt: string;
   createdAtLabel: string;
 };
 
@@ -267,6 +268,7 @@ export type GroupJoinRequest = {
   name: string;
   email: string;
   status: JoinRequestStatus;
+  requestedAt: string;
   requestedAtLabel: string;
 };
 

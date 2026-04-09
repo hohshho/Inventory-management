@@ -5,6 +5,9 @@ import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
   onIdTokenChanged,
+  reload,
+  sendEmailVerification,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -20,6 +23,8 @@ type AuthSessionContextValue = {
   loading: boolean;
   signInUser: (email: string, password: string) => Promise<void>;
   signUpUser: (name: string, email: string, password: string) => Promise<void>;
+  resendVerificationForCredentials: (email: string, password: string) => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
   signInWithGoogleUser: () => Promise<void>;
   signOutUser: () => Promise<void>;
   refreshProfile: () => Promise<UserSession | null>;
@@ -60,10 +65,13 @@ function translateFirebaseError(error: unknown) {
     return new Error("이미 사용 중인 이메일입니다.");
   }
   if (code.includes("auth/weak-password")) {
-    return new Error("비밀번호는 6자 이상이어야 합니다.");
+    return new Error("비밀번호는 8자 이상이어야 합니다.");
   }
   if (code.includes("auth/invalid-email")) {
     return new Error("이메일 형식이 올바르지 않습니다.");
+  }
+  if (code.includes("auth/too-many-requests")) {
+    return new Error("요청이 너무 많습니다. 잠시 후 다시 시도하거나 비밀번호 재설정을 이용해 주세요.");
   }
   if (code.includes("auth/network-request-failed")) {
     return new Error("네트워크 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
@@ -137,7 +145,13 @@ export function AuthSessionProvider({
       signInUser: async (email, password) => {
         const firebaseAuth = getFirebaseAuth();
         try {
-          await signInWithEmailAndPassword(firebaseAuth, email, password);
+          const credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+          await reload(credential.user);
+          if (!credential.user.emailVerified) {
+            await sendEmailVerification(credential.user);
+            await signOut(firebaseAuth);
+            throw new Error("이메일 인증이 완료되지 않았습니다. 인증 메일을 다시 보냈습니다.");
+          }
         } catch (error) {
           throw translateFirebaseError(error);
         }
@@ -146,8 +160,28 @@ export function AuthSessionProvider({
         const firebaseAuth = getFirebaseAuth();
         try {
           const credential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+          await sendEmailVerification(credential.user);
           const nextProfile = await syncUserProfile(credential.user, { name });
           setProfile(nextProfile);
+          await signOut(firebaseAuth);
+        } catch (error) {
+          throw translateFirebaseError(error);
+        }
+      },
+      resendVerificationForCredentials: async (email, password) => {
+        const firebaseAuth = getFirebaseAuth();
+        try {
+          const credential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+          await sendEmailVerification(credential.user);
+          await signOut(firebaseAuth);
+        } catch (error) {
+          throw translateFirebaseError(error);
+        }
+      },
+      requestPasswordReset: async (email) => {
+        const firebaseAuth = getFirebaseAuth();
+        try {
+          await sendPasswordResetEmail(firebaseAuth, email);
         } catch (error) {
           throw translateFirebaseError(error);
         }

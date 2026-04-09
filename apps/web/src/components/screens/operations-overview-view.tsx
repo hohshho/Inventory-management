@@ -1,5 +1,6 @@
 "use client";
 
+import { HelpHint } from "@/components/help-hint";
 import { ScheduleBoard } from "@/components/schedule-board";
 import { useOperationsDigest } from "@/hooks/queries/use-operations-digest";
 
@@ -31,7 +32,7 @@ export function OperationsOverviewView() {
       <div className="empty-state">
         대시보드 데이터를 불러오지 못했습니다.
         <br />
-        {summaryError instanceof Error ? summaryError.message : "잠시 후 다시 시도해주세요."}
+        {summaryError instanceof Error ? summaryError.message : "잠시 후 다시 시도해 주세요."}
       </div>
     );
   }
@@ -44,28 +45,32 @@ export function OperationsOverviewView() {
     <div className="view-stack workbench-page">
       <section className="spotlight-shell">
         <div className="spotlight-copy">
-          <span className="spotlight-pill">Operations Console</span>
-          <h1>재고 운영 지표와 최근 흐름을 한 화면에서 확인합니다.</h1>
+          <span className="spotlight-pill">운영 요약</span>
+          <h1>오늘 확인할 재고 흐름을 봅니다.</h1>
           <p>
-            전체 품목 수, 부족 재고, 위치별 요약, 최근 변경 이력을 보고 오른쪽 일정 보드에서 메모와
-            반복 작업까지 같이 관리할 수 있습니다.
+            전체 품목 수량, 부족 재고, 위치별 요약, 최근 변경과 일정 메모를 같은 화면에서 이어서 확인할 수
+            있습니다.
           </p>
         </div>
 
         <div className="spotlight-sidecar">
-          <span className="section-pill">Today</span>
-          <h3>오늘의 확인 항목</h3>
+          <div className="surface-head">
+            <div className="section-head-inline">
+              <h3>오늘의 확인 항목</h3>
+              <HelpHint description="오늘 우선 확인할 항목을 빠르게 모아 둔 카드입니다. 부족 재고, 운영 위치 수, 최근 조정 건수를 기준으로 점검하면 됩니다." />
+            </div>
+          </div>
           <div className="spotlight-list">
             <div className="spotlight-item">
               <span>부족 재고 점검</span>
               <strong>{summaryData.lowStockCount}건</strong>
             </div>
             <div className="spotlight-item">
-              <span>운영 위치</span>
-              <strong>{summaryData.locationCount}개</strong>
+              <span>운영 위치 확인</span>
+              <strong>{summaryData.locationCount}곳</strong>
             </div>
             <div className="spotlight-item">
-              <span>최근 변경 로그</span>
+              <span>최근 변경 검토</span>
               <strong>{summaryData.recentAdjustments.length}건</strong>
             </div>
           </div>
@@ -81,7 +86,7 @@ export function OperationsOverviewView() {
         <article className="metric-card">
           <span className="metric-label">전체 수량</span>
           <strong>{summaryData.totalQuantity}</strong>
-          <p>모든 위치 재고를 합산한 총 수량입니다.</p>
+          <p>모든 보관 위치의 재고를 합산한 총 수량입니다.</p>
         </article>
         <article className="metric-card">
           <span className="metric-label">주의 및 부족</span>
@@ -91,7 +96,7 @@ export function OperationsOverviewView() {
         <article className="metric-card">
           <span className="metric-label">운영 위치</span>
           <strong>{summaryData.locationCount}</strong>
-          <p>창고, 냉장, 선반 등 보관 위치 수입니다.</p>
+          <p>창고, 선반, 냉장 보관 위치를 포함합니다.</p>
         </article>
       </section>
 
@@ -100,11 +105,10 @@ export function OperationsOverviewView() {
           <section className="surface-card">
             <div className="surface-head">
               <div>
-                <span className="section-pill">Live Activity</span>
                 <h3>최근 재고 조정</h3>
-                <p>입고, 차감, 수동 조정 이력을 시간순으로 보여줍니다.</p>
+                <p>입출고, 수동 수정, 위치 이동 기록에서 사유를 우선 확인할 수 있게 정리했습니다.</p>
               </div>
-              <span className="badge ok">실시간 로그</span>
+              <span className="badge ok">최근 {summaryData.recentAdjustments.length}건</span>
             </div>
 
             {summaryData.recentAdjustments.length === 0 ? (
@@ -115,10 +119,11 @@ export function OperationsOverviewView() {
                   <article className="log-row" key={historyItem.id}>
                     <div className={`log-dot ${pickLedgerTone(historyItem.changeType)}`} />
                     <div className="log-copy">
-                      <strong>{historyItem.itemName}</strong>
+                      <strong>{historyItem.reason}</strong>
                       <div className="subtle">
-                        {historyItem.locationName} · {historyItem.reason} · {historyItem.createdByName}
+                        물품: {historyItem.itemName} / 대상 재고: {historyItem.locationName}
                       </div>
+                      <div className="subtle">변경자: {historyItem.createdByName}</div>
                     </div>
                     <div className="log-meta">
                       <span className={`badge ${pickLedgerTone(historyItem.changeType)}`}>
@@ -135,9 +140,8 @@ export function OperationsOverviewView() {
           <section className="surface-card">
             <div className="surface-head">
               <div>
-                <span className="section-pill">Storage Zones</span>
-                <h3>위치별 재고 현황</h3>
-                <p>각 위치에 몇 개 품목이 있고, 현재 수량이 얼마인지 요약합니다.</p>
+                <h3>위치별 재고 요약</h3>
+                <p>각 보관 위치의 품목 수와 현재 수량을 한 번에 비교합니다.</p>
               </div>
             </div>
 
@@ -162,7 +166,7 @@ export function OperationsOverviewView() {
 
         <ScheduleBoard
           compact
-          subtitle="캘린더 메모와 반복 업무를 같은 화면에서 관리합니다."
+          subtitle="캘린더 메모와 반복 점검 일정을 같은 패널에서 관리합니다."
           title="운영 일정"
         />
       </section>
